@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
+  devIndicators: false,
   turbopack: { root: process.cwd() },
   serverExternalPackages: ["@ambiten/core", "@ambiten/logger", "mongodb"],
   async headers() {

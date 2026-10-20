@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-export const OWNER = 'abinod'
 export const categories = ['analytics', 'marketing'] as const
 export const siteInput = z.object({
   name: z.string().trim().min(2).max(80),
@@ -34,7 +33,7 @@ export const siteInput = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .default('#4F46E5'),
-  retentionDays: z.number().int().min(30).max(365).default(180),
+  retentionDays: z.number().int().min(30).max(365).default(30),
   analytics: z
     .string()
     .trim()
@@ -54,6 +53,10 @@ export const siteInput = z.object({
 })
 export type SiteInput = z.infer<typeof siteInput>
 export type Site = SiteInput & {
+  slot: number
+  deleted: boolean
+  verified: boolean
+  verificationToken: string
   id: string
   ownerId: string
   version: number
@@ -103,8 +106,8 @@ export type Receipt = z.infer<typeof consentInput> & {
   }
 }
 export function publicSite (site: Site) {
-  const { ownerId: _, createdAt: __, updatedAt: ___, ...config } = site
-  return config
+  const { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version } = site
+  return { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version }
 }
 export function originAllowed (site: Site, origin: string | null) {
   return origin !== null && origin === site.origin

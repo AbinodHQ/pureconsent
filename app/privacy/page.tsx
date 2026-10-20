@@ -43,23 +43,7 @@ export default function Privacy () {
           retention affects new events only. Local development filters expired
           records on access and removes them on the next write.
         </p>
-        <h2>Operator access</h2>
-        <p>
-          The initial release has one operator workspace. Its sign-in uses an
-          essential, HTTP-only session cookie lasting eight hours. Local
-          development may run without authentication on loopback; production
-          requires configuration. Infrastructure providers may process request
-          metadata in their own access logs. Configure their logging, retention,
-          region, and contracts separately.
-        </p>
-        <h2>Before a commercial launch</h2>
-        <p>
-          The operator must publish their controller identity, contact details,
-          purposes and legal bases, provider list, retention policy,
-          data-subject rights, and any international transfer information.
-          Hosting in Germany is not implied by using PureConsent or Ambiten.
-        </p>
-        <Link className='button dark' href='/docs'>
+        <h2>Customer accounts</h2><p>We store your name, email, workspace, password hash, and subscription status. The essential HTTP-only session cookie lasts seven days. Verification links expire after 24 hours; recovery links after one hour. Password changes revoke existing sessions. Your website data is scoped to your account.</p><h2>Service providers</h2><p>Ambiten provides the database integration with MongoDB. Resend delivers account emails when configured. Stripe processes payments and billing; card details are not stored by PureConsent. Infrastructure providers may process request metadata in their access logs. Monthly usage counts configuration requests without building visitor profiles.</p><h2>Your controls</h2><p>Export your profile and the latest 1,000 retained receipts from Account, or export the consent ledger as CSV. You can delete your account after any paid subscription has ended. Account deletion removes its websites, sessions, and receipts; payment providers may retain financial records under their own policies.</p><h2>Contact and requests</h2><p>PureConsent is operated by Abinod. For account, privacy, or data requests, contact <a href="mailto:abinod@online.de">abinod@online.de</a>. For choices submitted on another website, contact that website’s owner first; they determine the purposes and providers used on their site. Hosting in Germany is not implied by using PureConsent or Ambiten.</p><Link className='button dark' href='/docs'>
           Read the integration guide ↗
         </Link>
       </article>

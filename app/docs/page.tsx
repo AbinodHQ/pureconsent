@@ -20,21 +20,7 @@ export default function Docs () {
           PureConsent controls scripts you explicitly mark as optional. Complete
           these steps on each website before inviting real visitors.
         </p>
-        <h2 id='setup'>01 · Run your workspace</h2>
-        <p>
-          Use Node.js 22.15 or newer. Copy <code>.env.example</code> to{' '}
-          <code>.env.local</code> and start the development server.
-        </p>
-        <pre>{`npm install\nnpm run dev\n# Open http://localhost:3100`}</pre>
-        <p>
-          Local mode saves development data in{' '}
-          <code>.data/pureconsent.json</code>. For durable database storage set{' '}
-          <code>PURECONSENT_STORAGE=ambiten</code>, <code>MONGODB_URI</code>,
-          and <code>MONGODB_DB</code>. Production requires Ambiten and a
-          configured operator password and session secret. Set{' '}
-          <code>APP_ORIGIN</code> to your dashboard’s exact origin.
-        </p>
-        <h2>02 · Add your website</h2>
+        <h2 id="setup">01 · Create your workspace</h2><p>Create a free account, verify your email, and sign in. Choose a paid plan from Billing when you need more websites or longer retention.</p><h2>02 · Add your website</h2>
         <p>
           Open the workspace and choose “Add website”. Enter its exact HTTPS
           origin, privacy notice link, and descriptions of your actual
@@ -42,7 +28,7 @@ export default function Docs () {
           detection changes the interface language only; it does not infer
           jurisdiction. Custom provider descriptions need your own translation.
         </p>
-        <h2>03 · Install the widget</h2>
+        <h2>Verify your domain</h2><p>In Banner studio, copy the DNS TXT record for your domain. Add it with your DNS provider, then choose “Check DNS record”. Public banners are available only after ownership is verified. Localhost domains are automatically verified in development.</p><h2>03 · Install the widget</h2>
         <p>
           Copy the snippet from Banner studio into the page head. Your
           PureConsent server must be publicly reachable over HTTPS for a live
@@ -113,12 +99,7 @@ export default function Docs () {
         </p>
         <h2>What this first release includes</h2>
         <p>
-          A single-operator workspace, domain configuration, a dependency-free
-          widget, English/German controls, explicit script gating, versioned
-          records, retention, and CSV exports of the latest 1,000 events. It is
-          not yet a multi-customer billing service. Subscriptions, automated
-          scanning, verified domain ownership, distributed abuse protection,
-          vendor integrations, and AI-assisted drafts are future work.
+          Customer accounts, verified domains, plan limits, subscriptions, English/German controls, explicit script gating, versioned records, retention, and exports of the latest 1,000 events. Automatic cookie scanning, vendor-specific cleanup, and AI-generated legal notices are not included.
         </p>
         <h2>Design references</h2>
         <p>

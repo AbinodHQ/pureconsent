@@ -1,3 +1,4 @@
+import { Pricing } from "@/components/pricing";
 import Link from 'next/link'
 import {
   ArrowUpRight,
@@ -15,10 +16,10 @@ export default function Home () {
       <nav className='landing-nav'>
         <Brand />
         <div>
-          <a href='#how'>How it works</a>
+          <a href='#how'>How it works</a><a href='#pricing'>Pricing</a>
           <Link href='/docs'>Documentation</Link>
-          <Link className='button dark compact' href='/dashboard'>
-            Open workspace <ArrowUpRight size={15} />
+          <Link className='button dark compact' href='/auth/login'>
+            Sign in <ArrowUpRight size={15} />
           </Link>
         </div>
       </nav>
@@ -38,7 +39,7 @@ export default function Home () {
             better experience.
           </p>
           <div className='hero-actions'>
-            <Link href='/dashboard' className='button dark'>
+            <Link href='/auth/signup' className='button dark'>
               Build your first banner <ArrowRight size={17} />
             </Link>
             <Link href='/docs' className='text-link'>
@@ -127,27 +128,12 @@ export default function Home () {
           </article>
         </div>
       </section>
-      <section className='launch-note'>
-        <span className='eyebrow'>THE FIRST CHAPTER</span>
-        <h2>
-          Your next Abinod product,
-          <br />
-          ready to take shape.
-        </h2>
-        <p>
-          This initial release is an operator workspace for configuring and
-          testing websites. Self-service accounts and subscriptions are planned
-          for the commercial launch.
-        </p>
-        <Link href='/dashboard' className='button dark'>
-          Enter the workspace <ArrowRight size={16} />
-        </Link>
-      </section>
+      <Pricing/><section className="launch-note"><span className="eyebrow">PRIVACY THAT FITS YOUR BUSINESS</span><h2>A better first impression.<br/>One website at a time.</h2><p>Give visitors a clear choice. Keep your websites and consent records in one focused workspace.</p><Link href="/auth/signup" className="button dark">Create your free workspace <ArrowRight size={16}/></Link></section>
       <footer>
         <Brand small />
         <span>Thoughtfully built by Abinod.</span>
         <div>
-          <Link href='/privacy'>Privacy & storage</Link>
+          <Link href='/privacy'>Privacy</Link><Link href='/terms'>Terms</Link>
           <Link href='/docs'>Integration guide</Link>
         </div>
       </footer>
