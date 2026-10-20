@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PureConsent interactive preview</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f6f4ee;
+        color: #34473a;
+        font-family: Arial, sans-serif;
+        min-height: 670px;
+      }
+      nav {
+        padding: 24px 30px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        border-bottom: 1px solid #e7e4da;
+      }
+      nav strong {
+        font-family: Georgia, serif;
+        font-size: 19px;
+      }
+      main {
+        padding: 55px 35px;
+        text-align: center;
+      }
+      small {
+        font-size: 9px;
+        letter-spacing: 3px;
+        color: #79907a;
+      }
+      h1 {
+        font: 44px/1.1 Georgia, serif;
+        max-width: 340px;
+        margin: 20px auto;
+        color: #51674c;
+      }
+      p {
+        font-size: 12px;
+        color: #84907f;
+      }
+      .shape {
+        width: 180px;
+        height: 160px;
+        border-radius: 100px 100px 10px 10px;
+        background: linear-gradient(145deg, #d6decb, #aabd9d);
+        margin: 35px auto;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <strong>form & field</strong><span>About &nbsp; · &nbsp; Collection</span>
+    </nav>
+    <main>
+      <small>A FICTIONAL WEBSITE</small>
+      <h1>A little closer<br />to nature.</h1>
+      <p>Thoughtful things, made for everyday living.</p>
+      <div class="shape"></div>
+    </main>
+    <script src="/consent.js" data-preview="true" defer></script>
+  </body>
+</html>
