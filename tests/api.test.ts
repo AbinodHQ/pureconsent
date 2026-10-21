@@ -27,7 +27,7 @@ test('customer lifecycle, tenant isolation, atomic plan quotas, consent and pass
  for(let i=0;i<2;i++)assert.equal((await call('POST',`public/${site.id}/consent`,receipt,'',site.origin)).status,201);
  assert.equal((await (await call('GET','receipts',undefined,alice)).json()).length,1);assert.equal((await (await call('GET','receipts',undefined,bob)).json()).length,0);
  assert.equal((await call('POST',`public/${site.id}/consent`,{...receipt,version:2},'',site.origin)).status,409);
- assert.equal((await call('POST','billing/checkout',{plan:'pro'},alice)).status,503);
+ assert.equal((await call('POST','billing/checkout',{plan:'starter'},alice)).status,503);
  const customer=(await accountByEmail('alice@example.test'))!;await updateAccount(customer.id,{plan:'business',subscriptionStatus:'active',paidThrough:Date.now()+100000});
  assert.equal((await call('POST','sites',{...input,origin:'https://public.example.test'},alice)).status,201);
  const second=(await (await call('GET','overview',undefined,alice)).json()).sites.find((s:{origin:string})=>s.origin.startsWith('https'));

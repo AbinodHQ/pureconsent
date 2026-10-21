@@ -89,7 +89,10 @@ export default function Docs () {
           retryable record on the device. Already running scripts cannot be
           undone by this widget alone.
         </p>
-        <h2>Content Security Policy</h2>
+        <h2>Page views and single-page apps</h2><p>Each successful widget initialization records one page view, regardless of the visitor’s choice. We send a random page-view ID, with no page URL, IP address, or persistent visitor identifier in the usage record. Retried requests reuse the ID. Counts are approximate if requests are blocked or offline. Previews are excluded.</p><p>For Next.js, call <code>window.PureConsent?.trackPageView()</code> in a client-side effect after the pathname or search parameters change. Do not remount the widget on every route. Duplicate calls for the same current path are ignored.</p><pre>{`// Next.js client component, after usePathname()/useSearchParams() change
+useEffect(() => {
+  window.PureConsent?.trackPageView();
+}, [pathname, searchParams]);`}</pre><p>In Webflow, add the snippet to the site’s head custom code and publish. In other SPA routers, call the same method after navigation. Do not pass customer data or URLs to this method.</p><h2>Translations and styling</h2><p>Starter and above can set colors, use an already-loaded brand font, and hide widget branding. Business Pro and Agency automatically select the DE, EN, or FR interface. Provider descriptions can be translated with DeepL and reviewed in Banner studio before saving, or entered manually. Custom descriptions are never translated on a visitor’s browser request.</p><h2>Agency client seats</h2><p>The Agency owner can invite five verified client accounts and assign specific domains. Clients can edit and export only those domains. Revocation takes effect on the next API request. Downgrading suspends client access, while visitor consent controls remain available.</p><h2>Content Security Policy</h2>
         <p>
           Allow your PureConsent host in <code>script-src</code> and{' '}
           <code>connect-src</code>. The banner inserts an isolated shadow-root
@@ -97,9 +100,9 @@ export default function Docs () {
           script nonces, place the nonce on optional script templates; it is
           copied to the activated script. Test your exact CSP before launch.
         </p>
-        <h2>What this first release includes</h2>
+        <h2>What PureConsent includes</h2>
         <p>
-          Customer accounts, verified domains, plan limits, subscriptions, English/German controls, explicit script gating, versioned records, retention, and exports of the latest 1,000 events. Automatic cookie scanning, vendor-specific cleanup, and AI-generated legal notices are not included.
+          Customer accounts, verified domains, plan limits, subscriptions, DE/EN/FR controls by plan, explicit script gating, versioned records, retention, and exports of the latest 1,000 events. Automatic cookie scanning, vendor-specific cleanup, and AI-generated legal notices are not included.
         </p>
         <h2>Design references</h2>
         <p>

@@ -10,3 +10,8 @@ export async function sendAction(account: Account, kind: 'verify' | 'reset', req
   if (!response.ok) throw new UserError('Email could not be delivered. Please retry shortly.', 503);
   return {};
 }
+export async function sendInvitation(email:string,workspace:string,url:string){
+ if(!process.env.RESEND_API_KEY){if(process.env.NODE_ENV==='production')throw new UserError('Email delivery is not configured.',503);return {developmentUrl:url};}
+ const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.EMAIL_FROM,to:email,subject:`Invitation to ${workspace} on PureConsent`,text:`You have been invited to manage assigned websites in ${workspace}. Sign in or create an account using this email address, then open ${url} and accept the invitation. The invitation expires in seven days.`}),signal:AbortSignal.timeout(15000)});
+ if(!response.ok)throw new UserError('Invitation email could not be delivered.',503);return {};
+}

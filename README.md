@@ -1,66 +1,44 @@
 # PureConsent
 
-A customer-facing consent management SaaS built by Abinod, using Ambiten for persistence. Includes verified email accounts, isolated customer workspaces, DNS domain verification, website configuration, EN/DE banners, tagged-script consent controls, versioned receipts, CSV export, plan limits, usage, and Stripe subscription integration.
+Consent management SaaS built by Abinod, with Ambiten persistence, verified customer accounts, domain verification, configurable consent controls, encrypted receipts, subscriptions and restricted client workspaces.
 
-## Run locally
+## Local development
 
-Use Node.js 22.15 or newer.
+Use Node.js 22.15 or newer. Run `npm ci`, copy `.env.example` to `.env.local`, then `npm run dev`. Open http://localhost:3100. Development email links appear in the interface. Local storage in `.data/saas-v2.json` is for single-process development only.
 
-```powershell
-npm ci
-Copy-Item .env.example .env.local
-npm run dev
-```
+## Pricing
 
-Open http://localhost:3100. Create an account and open the development verification link shown in the form. Local mode is single-process development only and stores data in `.data/saas-v2.json`. There is no authentication bypass. Never publish the local adapter or development email links.
+| Plan | Monthly | Annual | Monthly page views | Domains | Client seats |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Free / Sandbox | €0 | — | 1,000 | 1 | 0 |
+| Starter | €12 | €99 | 25,000 | 1 | 0 |
+| Business Pro | €29 | €249 | 100,000 | 3 | 0 |
+| Agency / Studio | €69 | €599 | 500,000 | 15 | 5 |
 
-## Production configuration
+Unlimited subpages on every plan. Paid plans allow custom colors/fonts and branding removal. Business and Agency include DE/EN/FR localization, optional translation drafts and audit JSON export. Agency includes five invited clients plus the owner, restricted to assigned domains. Downgrading suspends shared access and applies current feature limits. Existing consent controls continue operating above traffic allowances, with upgrade prompts and no automatic overage fees.
 
-- `PURECONSENT_STORAGE=ambiten`, `MONGODB_URI`, `MONGODB_DB`.
-- `APP_ORIGIN=https://your-service-host` (exact public application origin).
-- `RESEND_API_KEY`, `EMAIL_FROM` with a verified sender domain.
-- Stripe settings below when ready. No payment credentials are needed for free accounts.
-- HTTPS, a supported Node runtime, backups with restore testing, uptime monitoring, restricted database access, and infrastructure log retention appropriate to your deployment.
+Page views are explicit widget impression events, independent of consent or configuration fetches. Random event IDs deduplicate retries without a persistent visitor ID. Allowances reset each UTC calendar month, including annual subscriptions. SPAs must invoke `window.PureConsent?.trackPageView()` after route changes; see `/docs`.
 
-Ambiten 1.3.0 is the database client. It currently enables directConnection internally, so use a compatible MongoDB endpoint. A local MongoDB 8 server has been integration-tested; Atlas/SRV or multi-node failover needs validation or an Ambiten client update before deployment. The v2 collections deliberately do not assign legacy single-operator data to customer accounts.
+## Production setup
 
-## Stripe setup (ready for credentials)
+Set `PURECONSENT_STORAGE=ambiten`, `MONGODB_URI`, `MONGODB_DB`, the exact HTTPS `APP_ORIGIN`, and verified `RESEND_API_KEY` / `EMAIL_FROM`. Configure production audit keys as described in [audit storage](docs/AUDIT.md). No secrets belong in Git. Optional `DEEPL_API_KEY` enables purpose-description translation drafts; review drafts before saving. Built-in interface translations need no API key.
 
-1. Create monthly USD recurring prices: Pro **$14**, Business **$39**. Put their IDs in `STRIPE_PRICE_PRO` and `STRIPE_PRICE_BUSINESS`. Server-side price validation requires these amounts and recurrence. Change `lib/plans.ts` and the matching Stripe prices together if pricing changes.
-2. Set `STRIPE_SECRET_KEY`. Keep all keys server-side; no publishable key is needed for hosted Checkout.
-3. Create a webhook at `https://your-service-host/api/billing/webhook`. Subscribe to `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and `invoice.payment_failed`. Set its `STRIPE_WEBHOOK_SECRET`.
-4. Configure the Stripe customer portal for payment updates, invoices, cancellation at period end, and switching only between the two PureConsent prices. Set your tax settings, business identity, and refund policy before accepting payments.
-5. Test Checkout, portal upgrades/downgrades, failed payments, renewals, cancellation, webhook retries, and expired sessions using Stripe test mode, then switch keys, prices, and webhook secret together for live mode.
+Ambiten 1.3.0 currently enables directConnection internally. Validate your MongoDB topology; a local MongoDB 8 endpoint is tested, while Atlas/SRV and multi-node failover require validation or a client update. Configure backups, key recovery, monitoring, access controls and retention for infrastructure logs. Verify actual app/database/backup/subprocessor locations before claiming German or EU-only hosting.
 
-Checkout returns do not grant paid access. Signed events trigger a fresh subscription lookup from Stripe under a per-account database lease. Active/trialing subscriptions with an allowlisted price and future period end grant access. Duplicate events are ignored only after successful handling. Billing can be refreshed from the dashboard. Past-due/canceled/expired plans fall back to Free. Existing banners keep working; new website slots and new receipt retention follow the current plan. Existing receipts retain their original expiry.
+[Stripe setup](docs/STRIPE.md) documents all six EUR prices, webhooks, portal and Sandbox checks. Stripe remains unconnected until you provide server configuration. Automated billing tests use mocks.
 
-Included monthly usage measures successful banner configuration requests, not unique visitors. Exceeding the allowance displays an upgrade prompt; there is no hard cutoff or automatic overage charge. Website quotas are enforced with unique database slot indexes. The Free plan is one website, 5,000 monthly requests and 30-day retention; Pro has 5 sites/100,000/180 days; Business 25 sites/1,000,000/365 days.
+## Security and integration boundaries
 
-## Accounts and data
+Passwords use salted scrypt; sessions and one-time tokens are hashed. Verified email and DNS domain ownership are required. Workspace authorization is enforced on the server. Account deletion requires a password and no ongoing subscription. Retention is 30/180/365/365 days by plan; existing receipts retain original expiry. Exports include the latest 1,000 retained records. Database TTL deletion is asynchronous, with expired records excluded from reads immediately.
 
-Passwords use salted scrypt. Session and one-time action tokens are stored hashed. Sessions last seven days; verification links 24 hours; recovery links one hour. Password changes revoke existing sessions. Mutation endpoints require same-origin requests. Authentication throttles are stored centrally through Ambiten; configure additional ingress/IP limits against public abuse.
+Read `/docs` before installing. Optional scripts must be explicitly tagged `type="text/plain" data-consent="analytics"` or `marketing`, using `data-src` for external scripts. Unmarked scripts, embeds, cookies and already-running providers are not automatically blocked or cleaned up. Test vendor cleanup and withdrawal on each site. No cookie scanner, IAB TCF or Google CMP certification is included. Encryption does not certify legal compliance.
 
-Each website, receipt, session, and usage query is scoped to its customer owner. DNS TXT ownership is required before public configuration is served. Localhost is auto-verified only outside production. Deleting a website stops serving its widget but retains receipts until expiry. Account deletion requires a password and no ongoing subscription; it removes the workspace data and expires open checkout sessions. Stripe may retain legally required billing records.
+The readable widget lives in `widget/consent.js`; `npm run build:widget` generates `public/consent.js` and reports actual compressed sizes, excluding configuration/network headers. Build, development and test commands regenerate it. Compression must be enabled by the hosting stack. No zero-performance-impact guarantee is made.
 
-Account exports and consent CSVs include the latest 1,000 retained events, explicitly labelled in the UI. Arrange a database-level export for larger archives. Retention TTL indexes delete expired documents asynchronously; application reads exclude expired data immediately. Backups need their own expiry policy.
+## Validation and launch
 
-## Widget integration
+Run `npm test` and `npm run build`. For a disposable MongoDB instance, set `MONGODB_URI` and `MONGODB_DB=pureconsent_test_<unique>`, then `npm run test:db`; the integration test deletes that database afterward.
 
-Read `/docs`. Install the widget, then mark every optional script with `type="text/plain" data-consent="analytics"` or `data-consent="marketing"`. External scripts use `data-src`, not `src`. Unmarked scripts, tag managers, embeds, cookies and already-running vendors are not automatically blocked or cleaned up. Test acceptance, refusal, custom choices, withdrawal, notice updates and provider cleanup on each website. Browser language selects interface text, not jurisdiction. Provider descriptions need your own translations.
+Tests exercise pricing, six checkout offers, encryption/tampering/key rotation, client permissions/seat caps, tenant isolation, page-view deduplication, account lifecycle and widget behavior. Before launch, test real Stripe Sandbox and email delivery, production storage/key recovery, browser integration on customer sites, and finalize operator identity, tax treatment, privacy/terms, DPA and subprocessors.
 
-## Validation
-
-```powershell
-npm test
-npm run build
-# Disposable database only:
-$env:MONGODB_URI='mongodb://127.0.0.1:27028'
-$env:MONGODB_DB='pureconsent_test_local'
-npm run test:db
-```
-
-Tests cover account lifecycle, one-time tokens, session revocation, tenant isolation, quota concurrency, signature tampering/expiry, canonical subscription state, duplicate webhook events, receipt idempotency and widget failure behavior. Billing tests mock Stripe; actual payment acceptance needs test-mode credentials.
-
-## Launch requirements
-
-Set production email/database/Stripe configuration. Finalize the legal entity, contact details, privacy notice, terms, DPA/subprocessor information, tax and refund policies for the actual service operator before public launch. The supplied pages describe implemented behavior but cannot invent your legal identity or deployment details. PureConsent does not certify legal compliance. Automated scanning, IAB TCF, Google CMP certification, organization invitations/roles, and vendor-specific cleanup are not included.
+Dependency review: Next.js is updated to 16.4.2. npm audit still flags the GraphQL Tools utility chain bundled by Ambiten 1.3.0 (GHSA-7mx3-vvmw-hjmv). This app uses Ambiten's database API, not its GraphQL schema helpers. Obtain an upstream-compatible patched dependency release and reassess before public launch; do not interpret passing application tests as clearing that advisory.

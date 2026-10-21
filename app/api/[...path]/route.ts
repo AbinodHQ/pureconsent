@@ -1,9 +1,11 @@
+import { entitledConfig } from '@/lib/entitlements';
+import { translatePurposes } from '@/lib/translation';
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveTxt } from 'node:dns/promises';
 import { z } from 'zod';
 import * as store from '@/lib/store';
-import { cookieName, hashToken, token, hashPassword, checkPassword, sameOrigin, sessionAge, authLimit } from '@/lib/auth';
-import { sendAction } from '@/lib/email';
+import { cookieName, hashToken, token, hashPassword, checkPassword, sameOrigin, appOrigin, sessionAge, authLimit } from '@/lib/auth';
+import { sendAction, sendInvitation } from '@/lib/email';
 import { checkout, portal, syncBilling, webhook, requireClosedBilling } from '@/lib/billing';
 import { siteInput, consentInput, publicSite, originAllowed, csv } from '@/lib/domain';
 import { PLANS, effectivePlan } from '@/lib/plans';
@@ -23,13 +25,14 @@ async function handler(r:NextRequest,ctx:{params:Promise<{path:string[]}>}) {
       if(!originAllowed(s,r.headers.get('origin'))) return json({error:'Origin not allowed.'},403);
       const cors={'Access-Control-Allow-Origin':s.origin,'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type','Vary':'Origin','Cache-Control':'no-store'};
       if(method==='OPTIONS') return new NextResponse(null,{status:204,headers:cors});
-      if(p[2]==='config' && method==='GET') {await store.monthlyUsage(s.ownerId,true);return NextResponse.json(publicSite(s),{headers:cors});}
+      if(p[2]==='config' && method==='GET') return NextResponse.json(entitledConfig(s,(await store.accountById(s.ownerId))!),{headers:cors});
+      if(p[2]==='impression' && method==='POST'){const {id}=z.object({id:z.string().uuid()}).strict().parse(await body(r));await store.recordImpression(s.ownerId,s.id,id);return NextResponse.json({ok:true},{headers:cors});}
       if(p[2]==='consent' && method==='POST') {
         const input=consentInput.parse(await body(r));
         if(input.version!==s.version) return NextResponse.json({error:'Notice changed. Reload the page.'},{status:409,headers:cors});
         if(!await store.consumeLimit(`receipt:${s.id}:${input.consentId}`,60,60000)) return NextResponse.json({error:'Please retry shortly.'},{status:429,headers:cors});
         const a=(await store.accountById(s.ownerId))!;
-        await store.saveReceipt({...input,siteId:s.id,ownerId:s.ownerId,createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+Math.min(s.retentionDays,PLANS[effectivePlan(a)].retention)*86400000),notice:{name:s.name,privacyUrl:s.privacyUrl,analytics:s.analytics,marketing:s.marketing,version:s.version}});
+        await store.saveReceipt({...input,siteId:s.id,ownerId:s.ownerId,createdAt:new Date().toISOString(),expiresAt:new Date(Date.now()+Math.min(s.retentionDays,PLANS[effectivePlan(a)].retention)*86400000),notice:{name:s.name,privacyUrl:s.privacyUrl,analytics:entitledConfig(s,a).translations?.[input.language]?.analytics||s.analytics,marketing:entitledConfig(s,a).translations?.[input.language]?.marketing||s.marketing,version:s.version}});
         return NextResponse.json({ok:true},{status:201,headers:cors});
       }
       return json({error:'Not found.'},404);
@@ -70,20 +73,40 @@ async function handler(r:NextRequest,ctx:{params:Promise<{path:string[]}>}) {
       return json({error:'Not found.'},404);
     }
     const a=await store.sessionAccount(hashToken(session));if(!a) return json({error:'Please sign in.'},401);
-    if(route==='overview' && method==='GET') return json({account:store.safeAccount(a),sites:await store.listSites(a.id),receipts:await store.listReceipts(a.id),usage:await store.monthlyUsage(a.id),storage:store.storageMode(),local:false});
+    if(route==='workspaces' && method==='GET') return json(await store.sharedWorkspaces(a.id));
+    if(route==='invitations/accept' && method==='POST') return json(await store.acceptInvite(a,hashToken(z.string().regex(/^[a-f0-9]{64}$/).parse((await body(r)).token))));
+    const workspaceId=r.headers.get('x-pc-workspace')||r.nextUrl.searchParams.get('workspace')||a.id;
+    const access=await store.workspaceAccess(a,workspaceId), owner=access.owner, assigned=access.siteIds;
+    const isClient=owner.id!==a.id;
+    if(isClient && !['overview','sites','receipts'].includes(p[0])) throw new store.UserError('Only the workspace owner can manage billing, seats, and account settings.',403);
+    if(isClient && ((route==='sites'&&method==='POST')||method==='DELETE')) throw new store.UserError('Only the owner can add or remove websites.',403);
+    if(route==='overview' && method==='GET') return json({account:store.safeAccount(a),workspace:{id:owner.id,name:owner.workspace,role:isClient?'client':'owner',plan:effectivePlan(owner)},sites:(await store.listSites(owner.id)).filter(s=>!assigned||assigned.includes(s.id)),receipts:await store.assignedReceipts(owner.id,assigned),usage:await store.pageViewUsage(owner.id,assigned),storage:store.storageMode(),local:false});
+    if(route==='members'&&method==='GET')return json((await store.memberships(a.id)).map(({tokenHash,...m})=>m));
+    if(route==='members'&&method==='POST'){
+      const input=z.object({email:emailSchema,siteIds:z.array(z.string().uuid()).min(1).max(15)}).parse(await body(r));
+      if(!await store.consumeLimit('invites:'+a.id,10,3600000))throw new store.UserError('Please wait before inviting more clients.',429);
+      const secret=token(),m=await store.createInvite(a,input.email,[...new Set(input.siteIds)],hashToken(secret));
+      try{return json({ok:true,...await sendInvitation(input.email,a.workspace,appOrigin(r)+'/dashboard?invite='+secret)},201);}catch(e){await store.removeMember(a.id,m.id);throw e;}
+    }
+    if(p[0]==='members'&&p[1]&&method==='DELETE'){await store.removeMember(a.id,p[1]);return json({ok:true});}
     if(route==='sites' && method==='POST') return json(await store.createSite(a.id,siteInput.parse(await body(r))),201);
     if(p[0]==='sites' && p[1]) {
-      const s=await store.getSite(p[1],a.id);if(!s) return json({error:'Website not found.'},404);
+      const s=await store.getSite(p[1],owner.id);if(!s || (assigned&&!assigned.includes(s.id))) return json({error:'Website not found.'},404);
+      if(p[2]==='translate'&&method==='POST'){
+        if(!PLANS[effectivePlan(owner)].languages)throw new store.UserError('Translation requires Business Pro or Agency.',402);
+        if(!await store.consumeLimit('translate:'+owner.id,20,3600000))throw new store.UserError('Translation limit reached. Retry later.',429);
+        const input=z.object({analytics:z.string().min(5).max(500),marketing:z.string().min(5).max(500)}).parse(await body(r));return json(await translatePurposes(input));
+      }
       if(p[2]==='verify' && method==='POST') {
         if(!await store.consumeLimit(`dns:${s.id}`,10,60000)) throw new store.UserError('Please wait before checking DNS again.',429);
         let records:string[][]=[];try{records=await resolveTxt(`_pureconsent.${new URL(s.origin).hostname}`);}catch{}
         if(!records.some(row=>row.join('')===`pureconsent=${s.verificationToken}`)) throw new store.UserError('TXT record not found yet. DNS changes can take time to propagate.');
-        await store.verifySite(a.id,s.id,s.verificationToken);return json({ok:true});
+        await store.verifySite(owner.id,s.id,s.verificationToken);return json({ok:true});
       }
-      if(method==='PATCH') return json(await store.updateSite(a.id,s.id,siteInput.parse(await body(r))));
-      if(method==='DELETE') {await store.deleteSite(a.id,s.id);return json({ok:true});}
+      if(method==='PATCH') return json(await store.updateSite(owner.id,s.id,siteInput.parse(await body(r))));
+      if(method==='DELETE') {await store.deleteSite(owner.id,s.id);return json({ok:true});}
     }
-    if(route==='receipts' && method==='GET') {const rows=await store.listReceipts(a.id,r.nextUrl.searchParams.get('siteId')||undefined);return r.nextUrl.searchParams.get('format')==='csv'?new NextResponse(csv(rows),{headers:{'Content-Type':'text/csv','Content-Disposition':'attachment; filename="pureconsent-receipts.csv"','Cache-Control':'no-store'}}):json(rows);}
+    if(route==='receipts' && method==='GET') {const rows=await store.assignedReceipts(owner.id,assigned,r.nextUrl.searchParams.get('siteId')||undefined);if(r.nextUrl.searchParams.get('format')==='audit'){if(!PLANS[effectivePlan(owner)].audit)throw new store.UserError('Audit exports require Business Pro or Agency.',402);return new NextResponse(JSON.stringify({schema:'pureconsent-audit-v1',exportedAt:new Date().toISOString(),note:'Latest 1,000 retained browser-submitted events. Integrity verification detects envelope alteration, not deletion or visitor identity.',records:rows},null,2),{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename=consent-audit.json','Cache-Control':'no-store'}});}return r.nextUrl.searchParams.get('format')==='csv'?new NextResponse(csv(rows),{headers:{'Content-Type':'text/csv','Content-Disposition':'attachment; filename="pureconsent-receipts.csv"','Cache-Control':'no-store'}}):json(rows);}
     if(route==='account' && method==='PATCH') {const input=await body(r);return json(store.safeAccount((await store.updateAccount(a.id,{name:z.string().trim().min(2).max(80).parse(input.name),workspace:z.string().trim().min(2).max(80).parse(input.workspace)}))!));}
     if(route==='account/export' && method==='GET') return new NextResponse(JSON.stringify({account:store.safeAccount(a),sites:await store.listSites(a.id),receipts:await store.listReceipts(a.id),note:'Includes the latest 1,000 retained receipts.'},null,2),{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename="pureconsent-account.json"','Cache-Control':'no-store'}});
     if(route==='account' && method==='DELETE') {
@@ -97,7 +120,7 @@ async function handler(r:NextRequest,ctx:{params:Promise<{path:string[]}>}) {
       if(!await checkPassword(z.string().max(128).parse(input.currentPassword),a.passwordHash)) throw new store.UserError('Current password is incorrect.');
       const next=passwordSchema.parse(input.password);await store.withLease(`auth:${a.id}`,async()=>{const current=(await store.accountById(a.id))!;await store.updateAccount(a.id,{passwordHash:await hashPassword(next),authVersion:current.authVersion+1});});return json({ok:true});
     }
-    if(route==='billing/checkout' && method==='POST') return json(await checkout(a,z.enum(['pro','business']).parse((await body(r)).plan),r));
+    if(route==='billing/checkout' && method==='POST') {const input=z.object({plan:z.enum(['starter','business','agency']),interval:z.enum(['month','year']).default('month')}).parse(await body(r));return json(await checkout(a,input.plan,r,input.interval));}
     if(route==='billing/portal' && method==='POST') return json(await portal(a,r));
     if(route==='billing/sync' && method==='POST') {if(!await store.consumeLimit(`sync:${a.id}`,10,60000)) throw new store.UserError('Please retry later.',429);return json(store.safeAccount((await syncBilling(a.id))!));}
     return json({error:'Not found.'},404);

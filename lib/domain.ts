@@ -28,7 +28,12 @@ export const siteInput = z.object({
         return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password
       } catch { return false }
     }),
-  language: z.enum(['auto', 'en', 'de']).default('auto'),
+  language: z.enum(['auto', 'en', 'de', 'fr']).default('auto'),
+  hideBranding: z.boolean().default(false),
+  fontFamily: z.string().trim().regex(/^[a-zA-Z0-9 ,'-]{1,100}$/).default('Arial, sans-serif'),
+  background: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#FFFFFF'),
+  textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#0B0F19'),
+  translations: z.record(z.enum(['en','de','fr']), z.object({analytics:z.string().trim().min(5).max(1500),marketing:z.string().trim().min(5).max(1500)})).default({}),
   accent: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
@@ -68,7 +73,7 @@ export const consentInput = z
     id: z.string().uuid(),
     consentId: z.string().uuid(),
     version: z.number().int().positive(),
-    language: z.enum(['en', 'de']),
+    language: z.enum(['en', 'de', 'fr']),
     action: z.enum(['accept', 'reject', 'custom', 'withdraw']),
     choices: z
       .object({
@@ -106,8 +111,8 @@ export type Receipt = z.infer<typeof consentInput> & {
   }
 }
 export function publicSite (site: Site) {
-  const { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version } = site
-  return { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version }
+  const { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version, hideBranding, fontFamily, background, textColor, translations } = site
+  return { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version, hideBranding, fontFamily, background, textColor, translations }
 }
 export function originAllowed (site: Site, origin: string | null) {
   return origin !== null && origin === site.origin

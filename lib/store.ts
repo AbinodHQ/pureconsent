@@ -4,18 +4,22 @@ import { randomUUID } from "node:crypto";
 import type { Collection, Document } from "mongodb";
 import type { Site, SiteInput, Receipt } from "./domain";
 import { PLANS, effectivePlan, type Plan } from "./plans";
+import { sealReceipt, openReceipt, type EncryptedReceipt } from './audit';
+import { validateFeatures } from './entitlements';
 export type Account = {
   id: string; email: string; name: string; workspace: string; passwordHash: string;
   emailVerified: boolean; authVersion: number; createdAt: string; plan: Plan;
   stripeCustomerId?: string; subscriptionId?: string; subscriptionStatus?: string;
-  paidThrough?: number; cancelAtPeriodEnd?: boolean; billingSyncedAt?: number;
+  billingInterval?: 'month' | 'year'; paidThrough?: number; cancelAtPeriodEnd?: boolean; billingSyncedAt?: number;
 };
 type Session = { tokenHash: string; ownerId: string; authVersion: number; expiresAt: Date | string };
 type ActionToken = { tokenHash: string; ownerId: string; kind: "verify" | "reset"; expiresAt: Date | string };
 type Usage = { ownerId: string; month: string; count: number };
 type Limit = { key: string; count: number; expiresAt: Date | string };
 type Lease = { key: string; holder: string; expiresAt: Date | string };
-type Data = { sites: Site[]; receipts: Receipt[]; accounts: Account[]; sessions: Session[]; tokens: ActionToken[]; usage: Usage[]; limits: Limit[]; leases: Lease[]; events: string[] };
+export type Membership = {id:string;ownerId:string;email:string;siteIds:string[];status:'invited'|'active';tokenHash?:string;expiresAt?:Date|string;userId?:string};
+type Impression = {id:string;ownerId:string;siteId:string;month:string;expiresAt:Date|string};
+type Data = { memberships:Membership[]; impressions:Impression[]; sites: Site[]; receipts: (Receipt | EncryptedReceipt)[]; accounts: Account[]; sessions: Session[]; tokens: ActionToken[]; usage: Usage[]; limits: Limit[]; leases: Lease[]; events: string[] };
 type Db = { collection: <T extends Document>(name: string) => Promise<Collection<T>>; close: () => Promise<void> };
 const state = globalThis as typeof globalThis & { pcDbV2?: Promise<Db>; pcQueueV2?: Promise<unknown> };
 export class UserError extends Error { constructor(message: string, public status = 400) { super(message); } }
@@ -47,6 +51,8 @@ async function database() {
         ["usage_v2", { ownerId: 1, month: 1 }, { unique: true }],
         ["limits_v2", { key: 1 }, { unique: true }], ["limits_v2", { expiresAt: 1 }, { expireAfterSeconds: 0 }],
         ["leases_v2", { key: 1 }, { unique: true }], ["leases_v2", { expiresAt: 1 }, { expireAfterSeconds: 0 }],
+        ["memberships_v2", { id: 1 }, { unique:true }], ["memberships_v2", { ownerId:1, email:1 }, { unique:true }], ["memberships_v2", { userId:1 }, {}],
+        ["impressions_v2", { siteId:1, month:1, id:1 }, {unique:true}], ["impressions_v2", {ownerId:1,month:1},{}], ["impressions_v2", {expiresAt:1}, {expireAfterSeconds:0}],
         ["events_v2", { id: 1 }, { unique: true }], ["events_v2", { expiresAt: 1 }, { expireAfterSeconds: 0 }]
       ];
       for (const [name, fields, options] of indexes) await (await db.collection(name)).createIndex(fields, options);
@@ -62,7 +68,8 @@ async function local<T>(fn: (data: Data) => T, write = false): Promise<T> {
     const file = path.join(process.cwd(), ".data", "saas-v2.json");
     let data: Data;
     try { data = JSON.parse(await readFile(file, "utf8")); }
-    catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; data = { sites: [], receipts: [], accounts: [], sessions: [], tokens: [], usage: [], limits: [], leases: [], events: [] }; }
+    catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; data = { memberships:[], impressions:[], sites: [], receipts: [], accounts: [], sessions: [], tokens: [], usage: [], limits: [], leases: [], events: [] }; }
+    data.memberships ||= []; data.impressions ||= [];
     for (const key of ["receipts", "sessions", "tokens", "limits", "leases"] as const) (data[key] as { expiresAt: Date | string }[]) = data[key].filter(item => new Date(item.expiresAt).getTime() > Date.now());
     const result = fn(data);
     if (write) { await mkdir(path.dirname(file), { recursive: true }); const temp = `${file}.${randomUUID()}.tmp`; await writeFile(temp, JSON.stringify(data)); await rename(temp, file); }
@@ -128,6 +135,7 @@ export async function publicSiteById(id: string) {
 }
 export async function createSite(ownerId: string, input: SiteInput) {
   const a = await accountById(ownerId); if (!a) throw new UserError("Account not found.", 401);
+  validateFeatures(a,input);
   const limit = PLANS[effectivePlan(a)];
   if (input.retentionDays > limit.retention) throw new UserError(`Your plan supports up to ${limit.retention} days of retention.`);
   const isLocal = ["localhost", "127.0.0.1"].includes(new URL(input.origin).hostname);
@@ -150,6 +158,7 @@ export async function createSite(ownerId: string, input: SiteInput) {
 }
 export async function updateSite(ownerId: string, id: string, input: SiteInput) {
   const current = await getSite(id, ownerId), a = await accountById(ownerId); if (!current || !a) return null;
+  validateFeatures(a,input);
   if (input.retentionDays > PLANS[effectivePlan(a)].retention) throw new UserError("This retention period requires an upgraded plan.");
   const values = { ...input, updatedAt: new Date().toISOString(), ...(current.origin !== input.origin ? { verified: false, verificationToken: randomUUID() } : {}) };
   if (storageMode() === "local") return local(d => {
@@ -168,12 +177,13 @@ export async function deleteSite(ownerId: string, id: string) {
   await (await col<Site>("sites")).updateOne({ id, ownerId }, { $set: { deleted: true } });
 }
 export async function listReceipts(ownerId: string, siteId?: string, limit = 1000) {
-  if (storageMode() === "local") return local(d => d.receipts.filter(r => r.ownerId === ownerId && (!siteId || r.siteId === siteId)).reverse().slice(0, limit));
-  return (await col<Receipt>("receipts")).find({ ownerId, ...(siteId ? { siteId } : {}), expiresAt: { $gt: new Date() } }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).limit(limit).toArray();
+  if (storageMode() === "local") return local(d => d.receipts.filter(r => r.ownerId === ownerId && (!siteId || r.siteId === siteId)).reverse().slice(0, limit).map(openReceipt));
+  return (await (await col<EncryptedReceipt | Receipt>("receipts")).find({ ownerId, ...(siteId ? { siteId } : {}), expiresAt: { $gt: new Date() } }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).limit(limit).toArray()).map(openReceipt);
 }
-export async function saveReceipt(receipt: Receipt) {
+export async function saveReceipt(input: Receipt) {
+  const receipt = sealReceipt(input);
   if (storageMode() === "local") return local(d => { if (!d.receipts.some(r => r.id === receipt.id && r.siteId === receipt.siteId)) d.receipts.push(receipt); }, true);
-  await (await col<Receipt>("receipts")).updateOne({ id: receipt.id, siteId: receipt.siteId }, { $setOnInsert: receipt }, { upsert: true });
+  await (await col<EncryptedReceipt>("receipts")).updateOne({ id: receipt.id, siteId: receipt.siteId }, { $setOnInsert: receipt }, { upsert: true });
 }
 export async function monthlyUsage(ownerId: string, increment = false) {
   const month = new Date().toISOString().slice(0, 7);
@@ -201,7 +211,64 @@ export async function eventProcessed(id: string, mark = false) {
   const events = await col("events"); if (mark) await events.updateOne({ id }, { $setOnInsert: { id, expiresAt: new Date(Date.now() + 30 * 86400000) } }, { upsert: true }); return !!await events.findOne({ id });
 }
 export async function deleteAccount(ownerId: string) {
-  if (storageMode() === "local") return local(d => { d.accounts = d.accounts.filter(a => a.id !== ownerId); for (const key of ["sites", "receipts", "sessions", "tokens", "usage"] as const) (d[key] as { ownerId: string }[]) = d[key].filter(v => v.ownerId !== ownerId); }, true);
+  if (storageMode() === "local") return local(d => { d.accounts = d.accounts.filter(a => a.id !== ownerId); for (const key of ["sites", "receipts", "sessions", "tokens", "usage", "impressions", "memberships"] as const) (d[key] as { ownerId: string }[]) = d[key].filter(v => v.ownerId !== ownerId); }, true);
   await (await col<Account>("accounts")).deleteOne({ id: ownerId });
-  for (const name of ["sites", "receipts", "sessions", "tokens", "usage"]) await (await col(name)).deleteMany({ ownerId });
+  for (const name of ["sites", "receipts", "sessions", "tokens", "usage", "impressions", "memberships"]) await (await col(name)).deleteMany({ ownerId });
+}
+export async function recordImpression(ownerId:string,siteId:string,id:string){
+  const month=new Date().toISOString().slice(0,7),expiresAt=new Date(Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth()+2,1));
+  const row={ownerId,siteId,id,month,expiresAt};
+  if(storageMode()==='local')return local(d=>{d.impressions=d.impressions.filter(v=>new Date(v.expiresAt).getTime()>Date.now());if(!d.impressions.some(v=>v.id===id&&v.siteId===siteId&&v.month===month))d.impressions.push(row);},true);
+  await(await col<Impression>('impressions')).updateOne({siteId,id,month},{$setOnInsert:row},{upsert:true}).catch(e=>{if(e.code!==11000)throw e;});
+}
+export async function pageViewUsage(ownerId:string,siteIds?:string[]){
+  const month=new Date().toISOString().slice(0,7);
+  const count=storageMode()==='local'?await local(d=>d.impressions.filter(v=>v.ownerId===ownerId&&v.month===month&&(!siteIds||siteIds.includes(v.siteId))).length):await(await col<Impression>('impressions')).countDocuments({ownerId,month,...(siteIds?{siteId:{$in:siteIds}}:{})});
+  return {month,count};
+}
+export async function memberships(ownerId:string){
+  const rows=storageMode()==='local'?await local(d=>d.memberships.filter(m=>m.ownerId===ownerId)):await(await col<Membership>('memberships')).find({ownerId},{projection:{_id:0}}).toArray();
+  return rows.filter(m=>m.status==='active'||new Date(m.expiresAt!).getTime()>Date.now());
+}
+export async function sharedWorkspaces(userId:string){
+  const rows=storageMode()==='local'?await local(d=>d.memberships.filter(m=>m.userId===userId&&m.status==='active')):await(await col<Membership>('memberships')).find({userId,status:'active'},{projection:{_id:0}}).toArray();
+  const result=[];for(const m of rows){const a=await accountById(m.ownerId);if(a&&PLANS[effectivePlan(a)].seats>0)result.push({id:a.id,name:a.workspace,siteIds:m.siteIds});}return result;
+}
+export async function workspaceAccess(user:Account,ownerId:string){
+  if(ownerId===user.id)return {owner:user,siteIds:undefined as string[]|undefined};
+  const owner=await accountById(ownerId),m=(await memberships(ownerId)).find(m=>m.userId===user.id&&m.status==='active');
+  if(!owner||!m||PLANS[effectivePlan(owner)].seats===0)throw new UserError('Workspace access is unavailable.',403);
+  return {owner,siteIds:m.siteIds};
+}
+export async function createInvite(owner:Account,email:string,siteIds:string[],tokenHash:string){
+ return withLease(`members:${owner.id}`,async()=>{
+  const a=(await accountById(owner.id))!,limit=PLANS[effectivePlan(a)].seats;
+  if(!limit)throw new UserError('Client seats require Agency / Studio.',402);
+  if(email===owner.email)throw new UserError('The workspace owner already has access.');
+  const list=await memberships(a.id);if(list.length>=limit)throw new UserError('All five client seats are in use.',402);
+  if(list.some(m=>m.email===email))throw new UserError('This email already has an invitation or membership.',409);
+  const sites=await listSites(a.id);if(!siteIds.length||siteIds.some(id=>!sites.some(s=>s.id===id)))throw new UserError('Choose at least one website from your workspace.');
+  const row:Membership={id:randomUUID(),ownerId:a.id,email,siteIds,status:'invited',tokenHash,expiresAt:new Date(Date.now()+7*86400000)};
+  if(storageMode()==='local')await local(d=>{d.memberships=d.memberships.filter(m=>m.ownerId!==a.id||m.email!==email);d.memberships.push(row);},true);
+  else {const c=await col<Membership>('memberships');await c.deleteMany({ownerId:a.id,email,status:'invited',expiresAt:{$lte:new Date()}});await c.insertOne(row);}
+  return row;
+ });
+}
+export async function acceptInvite(user:Account,tokenHash:string){
+ const m=storageMode()==='local'?await local(d=>d.memberships.find(m=>m.tokenHash===tokenHash)):await(await col<Membership>('memberships')).findOne({tokenHash});
+ if(!m||m.status!=='invited'||new Date(m.expiresAt!).getTime()<Date.now()||m.email!==user.email)throw new UserError('Invitation expired, already used, or addressed to a different email.',403);
+ return withLease(`members:${m.ownerId}`,async()=>{const owner=await accountById(m.ownerId);if(!owner||PLANS[effectivePlan(owner)].seats===0)throw new UserError('The agency subscription is inactive.',403);
+  if(storageMode()==='local')await local(d=>{const row=d.memberships.find(v=>v.id===m.id&&v.tokenHash===tokenHash);if(!row)throw new UserError('Invitation unavailable.');row.status='active';row.userId=user.id;delete row.tokenHash;delete row.expiresAt;},true);
+  else {const result=await(await col<Membership>('memberships')).updateOne({id:m.id,tokenHash,status:'invited'},{$set:{status:'active',userId:user.id},$unset:{tokenHash:'',expiresAt:''}});if(!result.matchedCount)throw new UserError('Invitation unavailable.');}
+  return {workspaceId:m.ownerId};
+ });
+}
+export async function removeMember(ownerId:string,id:string){
+ return withLease(`members:${ownerId}`,async()=>{if(storageMode()==='local')await local(d=>{d.memberships=d.memberships.filter(m=>m.ownerId!==ownerId||m.id!==id);},true);else await(await col<Membership>('memberships')).deleteOne({id,ownerId});});
+}
+export async function assignedReceipts(ownerId:string,siteIds?:string[],siteId?:string){
+ if(siteId&&siteIds&&!siteIds.includes(siteId))throw new UserError('Website access denied.',403);
+ if(!siteIds)return listReceipts(ownerId,siteId);
+ if(siteId)return listReceipts(ownerId,siteId);
+ const rows=(await Promise.all(siteIds.map(id=>listReceipts(ownerId,id)))).flat();return rows.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,1000);
 }

@@ -1,7 +1,7 @@
 # Product scope
 
-Implemented: customer accounts and recovery, per-customer workspaces, domain verification, consent banners, versioned receipts, retention, CSV exports, pricing, billing portal, signed Stripe webhooks, usage reporting, profile/security settings, account export/deletion, Ambiten storage.
+Implemented: verified customer accounts and recovery; isolated workspaces; DNS verification; configurable banners; DE/EN/FR localization; optional reviewed translation drafts; encrypted receipts; audit and CSV export; EUR monthly/annual subscriptions; billing portal; page-view allowances; five restricted Agency client seats; account settings/export/deletion; Ambiten storage.
 
-Deployment work: configure hosting, verified email delivery, MongoDB topology, Stripe test/live settings, and business-specific legal documents. Validate real provider behavior on each customer website.
+Launch configuration: hosting and residency verification, email sender, production audit keys and recovery, compatible MongoDB topology, Stripe Sandbox/live setup, operator-specific legal information and provider integration testing.
 
-Future product extensions: organization invitations and roles, automatic cookie scanning, vendor-specific cleanup integrations, larger asynchronous exports, additional languages and certified advertising frameworks.
+Future extensions: cookie scanning, vendor cleanup integrations, larger asynchronous exports, more languages and certified advertising frameworks.

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { appOrigin } from './auth';
-import { PLANS, priceId, planForPrice, type Plan } from './plans';
+import { PLANS, priceId, planForPrice, type Plan, type Interval, offerForPrice } from './plans';
 import { accountById, accountByCustomer, updateAccount, eventProcessed, withLease, UserError, type Account } from './store';
 type Subscription = { id: string; status: string; cancel_at_period_end: boolean; metadata?: Record<string,string>; items: { data: { price: { id: string }; current_period_end?: number }[] }; current_period_end?: number };
 export async function stripe<T>(path: string, body?: Record<string,string>, idempotency?: string): Promise<T> {
@@ -20,22 +20,23 @@ export async function syncBilling(id: string) {
     const all = await subscriptions(a);
     const active = all.filter(s => ['active','trialing'].includes(s.status) && planForPrice(s.items.data[0]?.price.id)).sort((a,b) => (PLANS[planForPrice(b.items.data[0].price.id)!].price - PLANS[planForPrice(a.items.data[0].price.id)!].price))[0];
     const s = active || all.find(s => !['canceled','incomplete_expired'].includes(s.status));
-    return updateAccount(id, { plan: active ? planForPrice(active.items.data[0].price.id)! : 'free', subscriptionId: s?.id || '', subscriptionStatus: s?.status || 'none', paidThrough: active ? (active.items.data[0].current_period_end || active.current_period_end || 0)*1000 : 0, cancelAtPeriodEnd: s?.cancel_at_period_end || false, billingSyncedAt: Date.now() });
+    return updateAccount(id, { plan: active ? planForPrice(active.items.data[0].price.id)! : 'free', billingInterval: active ? offerForPrice(active.items.data[0].price.id)?.interval : undefined, subscriptionId: s?.id || '', subscriptionStatus: s?.status || 'none', paidThrough: active ? (active.items.data[0].current_period_end || active.current_period_end || 0)*1000 : 0, cancelAtPeriodEnd: s?.cancel_at_period_end || false, billingSyncedAt: Date.now() });
   });
 }
-export async function checkout(account: Account, plan: Plan, request: Request) {
-  if (plan === 'free' || !priceId(plan)) throw new UserError('This paid plan is not available yet.',503);
+export async function checkout(account: Account, plan: Plan, request: Request, interval: Interval = 'month') {
+  if (plan === 'free' || !priceId(plan, interval)) throw new UserError('This paid plan is not available yet.',503);
   return withLease(`billing:${account.id}`, async () => {
     const a = (await accountById(account.id))!;
     if ((await subscriptions(a)).some(s => !['canceled','incomplete_expired'].includes(s.status))) throw new UserError('Manage your existing subscription in the billing portal.',409);
-    const price = await stripe<{active:boolean;currency:string;unit_amount:number;recurring?:{interval:string;interval_count:number}}>(`prices/${encodeURIComponent(priceId(plan)!)}`);
-    if (!price.active || price.currency !== 'usd' || price.unit_amount !== PLANS[plan].price*100 || price.recurring?.interval !== 'month' || price.recurring.interval_count !== 1) throw new UserError('The billing price needs configuration. Please contact support.',503);
+    const price = await stripe<{active:boolean;currency:string;unit_amount:number;recurring?:{interval:string;interval_count:number}}>(`prices/${encodeURIComponent(priceId(plan, interval)!)}`);
+    if (!price.active || price.currency !== 'eur' || price.unit_amount !== (interval === 'year' ? PLANS[plan].annual : PLANS[plan].price)*100 || price.recurring?.interval !== interval || price.recurring.interval_count !== 1) throw new UserError('The billing price needs configuration. Please contact support.',503);
     let customer = a.stripeCustomerId;
     if (!customer) { customer = (await stripe<{id:string}>('customers', { email:a.email, name:a.name, 'metadata[pureconsent_account]':a.id }, `pc-customer-${a.id}`)).id; await updateAccount(a.id,{stripeCustomerId:customer}); }
-    const sessions = await stripe<{data:{status:string;url:string;metadata?:Record<string,string>}[]}>(`checkout/sessions?customer=${encodeURIComponent(customer)}&status=open&limit=100`);
+    const sessions = await stripe<{data:{id:string;status:string;url:string;metadata?:Record<string,string>}[]}>(`checkout/sessions?customer=${encodeURIComponent(customer)}&status=open&limit=100`);
     const pending = sessions.data.find(s => s.metadata?.pureconsent_account === a.id);
-    if (pending) return {url:pending.url};
-    return stripe<{url:string}>('checkout/sessions', { mode:'subscription', customer, 'line_items[0][price]':priceId(plan)!, 'line_items[0][quantity]':'1', 'metadata[pureconsent_account]':a.id, 'subscription_data[metadata][pureconsent_account]':a.id, success_url:`${appOrigin(request)}/dashboard?billing=success`, cancel_url:`${appOrigin(request)}/dashboard?billing=canceled`, 'billing_address_collection':'required' });
+    if (pending && pending.metadata?.offer === `${plan}:${interval}`) return {url:pending.url};
+    for (const s of sessions.data.filter(s=>s.metadata?.pureconsent_account === a.id)) await stripe(`checkout/sessions/${encodeURIComponent(s.id)}/expire`,{});
+    return stripe<{url:string}>('checkout/sessions', { mode:'subscription', customer, 'line_items[0][price]':priceId(plan, interval)!, 'line_items[0][quantity]':'1', 'metadata[pureconsent_account]':a.id, 'metadata[offer]':`${plan}:${interval}`, 'subscription_data[metadata][pureconsent_account]':a.id, success_url:`${appOrigin(request)}/dashboard?billing=success`, cancel_url:`${appOrigin(request)}/dashboard?billing=canceled`, 'billing_address_collection':'required' });
   });
 }
 export async function portal(a: Account, request: Request) {

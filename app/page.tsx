@@ -51,7 +51,7 @@ export default function Home () {
               <Check size={14} /> No tracking cookies from our widget
             </span>
             <span>
-              <Check size={14} /> English & German
+              <Check size={14} /> DE / EN / FR on Business Pro
             </span>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function Home () {
           </article>
         </div>
       </section>
-      <Pricing/><section className="launch-note"><span className="eyebrow">PRIVACY THAT FITS YOUR BUSINESS</span><h2>A better first impression.<br/>One website at a time.</h2><p>Give visitors a clear choice. Keep your websites and consent records in one focused workspace.</p><Link href="/auth/signup" className="button dark">Create your free workspace <ArrowRight size={16}/></Link></section>
+      <section className="uvp-grid"><article><Code2/><h3>Made for your stack.</h3><p>Next.js, Webflow, and custom websites. One dependency-free widget, with an explicit route-change hook for single-page apps.</p></article><article><Leaf/><h3>Keep your pages light.</h3><p>Deferred loading, no runtime framework, and no third-party font requests. Designed to stay out of your page layout.</p></article><article><ShieldCheck/><h3>Control your data location.</h3><p>Deploy the app and Ambiten-backed database in Germany or another EU region. Your chosen hosting and service providers determine data residency.</p></article></section><Pricing/><section className="launch-note"><span className="eyebrow">PRIVACY THAT FITS YOUR BUSINESS</span><h2>A better first impression.<br/>One website at a time.</h2><p>Give visitors a clear choice. Keep your websites and consent records in one focused workspace.</p><Link href="/auth/signup" className="button dark">Create your free workspace <ArrowRight size={16}/></Link></section>
       <footer>
         <Brand small />
         <span>Thoughtfully built by Abinod.</span>

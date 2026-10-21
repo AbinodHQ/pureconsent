@@ -6,7 +6,7 @@ import { JSDOM } from "jsdom";
 const script = readFileSync(new URL("../public/consent.js", import.meta.url), "utf8");
 const siteId = randomUUID();
 const config = { id: siteId, name: "Test website", version: 1, language: "en", accent: "#245b47", privacyUrl: "https://example.test/privacy", analytics: "Analytics provider description", marketing: "Marketing provider description" };
-async function setup(options: { saved?: unknown; unavailable?: boolean; receiptFailure?: boolean; storageFailure?: boolean; preview?: boolean } = {}) {
+async function setup(options: { saved?: unknown; unavailable?: boolean; receiptFailure?: boolean; storageFailure?: boolean; preview?: boolean; configuration?: Record<string,unknown> } = {}) {
   const dom = new JSDOM(`<!doctype html><html><body>
     <script type="text/plain" data-consent="analytics">window.analyticsRuns=(window.analyticsRuns||0)+1;</script>
     <script type="text/plain" data-consent="marketing">window.marketingRuns=(window.marketingRuns||0)+1;</script>
@@ -20,7 +20,7 @@ async function setup(options: { saved?: unknown; unavailable?: boolean; receiptF
     requests.push({ url, body: init?.body as string | undefined });
     if (url.endsWith("/config")) {
       if (options.unavailable) throw new Error("offline");
-      return { ok: true, json: async () => config };
+      return { ok: true, json: async () => ({...config,...options.configuration}) };
     }
     return { ok: !options.receiptFailure, status: options.receiptFailure ? 503 : 201 };
   }) as unknown as typeof fetch;
@@ -45,7 +45,7 @@ test("no optional execution before consent; reject stores minimum choices", asyn
     assert.equal(win.analyticsRuns, undefined); assert.equal(win.marketingRuns, undefined);
     await click("Reject optional");
     assert.equal(win.analyticsRuns, undefined);
-    const receipt = JSON.parse(requests.find(r => r.body)!.body!);
+    const receipt = JSON.parse(requests.find(r => r.url.endsWith("/consent") && r.body)!.body!);
     assert.deepEqual(receipt.choices, { necessary: true, analytics: false, marketing: false });
     assert.equal(receipt.action, "reject");
     assert.deepEqual(Object.keys(receipt).sort(), ["action", "choices", "consentId", "id", "language", "version"]);
@@ -108,4 +108,17 @@ test("preview choices and withdrawal never send receipts or display a retry acti
     await click("Withdraw consent");
     assert.equal(requests.length, 0);
   } finally { dom.window.close(); }
+});
+test('page views are separate from consent, deduplicated in-page, and track explicit SPA navigation',async()=>{
+ const {dom,win,requests,click}=await setup();try{
+ assert.equal(requests.filter(r=>r.url.endsWith('/impression')).length,1);assert.equal(requests.filter(r=>r.url.endsWith('/consent')).length,0);
+ (win as unknown as {PureConsent:{trackPageView:()=>void}}).PureConsent.trackPageView();assert.equal(requests.filter(r=>r.url.endsWith('/impression')).length,1);
+ win.history.pushState({},'', '/next-page');(win as unknown as {PureConsent:{trackPageView:()=>void}}).PureConsent.trackPageView();await new Promise(r=>setTimeout(r,20));assert.equal(requests.filter(r=>r.url.endsWith('/impression')).length,2);
+ await click('Reject optional');assert.equal(requests.filter(r=>r.url.endsWith('/impression')).length,2);for(const r of requests.filter(r=>r.url.endsWith('/impression')))assert.deepEqual(Object.keys(JSON.parse(r.body!)),['id']);
+ }finally{dom.window.close();}
+});
+test('French, translated provider text, brand font and white-label render from entitled configuration',async()=>{
+ const {dom,shadow,click}=await setup({configuration:{language:'fr',allowedLanguages:['en','de','fr'],hideBranding:true,fontFamily:'Georgia, serif',translations:{fr:{analytics:'Mesure des visites',marketing:'Publicité adaptée'}}}});try{
+ assert.ok(shadow()!.textContent!.includes('Votre vie privée'));assert.equal(shadow()!.textContent!.includes('Consentement par PureConsent'),false);await click('Choisir mes préférences');assert.ok(shadow()!.textContent!.includes('Mesure des visites'));assert.ok(shadow()!.querySelector('style')!.textContent!.includes('Georgia, serif'));
+ }finally{dom.window.close();}
 });

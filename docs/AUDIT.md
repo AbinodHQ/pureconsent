@@ -1,0 +1,11 @@
+# Consent audit storage
+
+New receipt payloads are encrypted with AES-256-GCM before persistence through Ambiten. Clear metadata is `id`, `siteId`, `ownerId`, `createdAt`, `expiresAt`. The envelope contains `version`, `keyId`, `iv`, `tag`, `ciphertext`. A random 12-byte IV is generated per receipt. HKDF-SHA256 derives a workspace key from the configured root key and owner ID. Authenticated additional data binds version, receipt/site/owner IDs and timestamps to the ciphertext.
+
+Set `AUDIT_KEYS_JSON` to a JSON object mapping key IDs to randomly generated 32-byte hexadecimal secrets, and `AUDIT_ACTIVE_KEY_ID` to its active entry. Keep these in a secret manager, separate from the database and source control. Back up keys securely: losing a key makes its receipts unreadable. Rotate by adding a key and changing the active ID; retain old keys until all associated records and backups expire. Development has a predictable local fallback key; production refuses encryption without valid configured keys.
+
+Exports decrypt and authenticate records. Business Pro and Agency can download the audit JSON, including integrity status. Legacy plaintext receipts are explicitly marked `legacy`; they have no retroactive encryption/authenticity guarantee. CSV/account exports remain available according to the UI. Exports are limited to the latest 1,000 retained records.
+
+This proves payload integrity against modification without the key, not visitor identity, a complete history, or legal compliance. It cannot detect deleted records, authenticate historical plaintext, or protect against an attacker controlling the application and keys. Establish restricted database access, key access controls, monitoring and tested backups. TTL deletion is asynchronous; application reads exclude expired receipts immediately. Backup expiry must be configured separately.
+
+Page-view counters store a random event ID, site/workspace IDs, UTC month and expiry; no page URL, IP address or persistent visitor identifier is included in those events. Infrastructure logs are separate and require their own privacy controls. Hosting in Germany/EU must be verified for the app, database, backups and selected subprocessors before making residency promises.
