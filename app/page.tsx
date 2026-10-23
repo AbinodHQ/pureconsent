@@ -10,7 +10,12 @@ import {
   ShieldCheck
 } from 'lucide-react'
 import { Brand } from '@/components/brand'
-export default function Home () {
+import { cookies } from 'next/headers'
+import { cookieName, hashToken } from '@/lib/auth'
+import { sessionAccount } from '@/lib/store'
+export default async function Home () {
+  const session = (await cookies()).get(cookieName)?.value
+  const account = session ? await sessionAccount(hashToken(session)) : null
   return (
     <main className='landing'>
       <nav className='landing-nav'>
@@ -18,8 +23,8 @@ export default function Home () {
         <div>
           <a href='#how'>How it works</a><a href='#pricing'>Pricing</a>
           <Link href='/docs'>Documentation</Link>
-          <Link className='button dark compact' href='/auth/login'>
-            Sign in <ArrowUpRight size={15} />
+          <Link className='button dark compact' href={account ? '/dashboard' : '/auth/login'}>
+            {account ? 'Dashboard' : 'Sign in'} <ArrowUpRight size={15} />
           </Link>
         </div>
       </nav>
