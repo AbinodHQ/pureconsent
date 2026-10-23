@@ -15,3 +15,9 @@ Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Hosted Checkout needs no br
 Signed webhook events trigger a fresh canonical subscription lookup. Checkout return URLs never grant access. Only active/trialing allowlisted subscriptions with a future period end grant paid features. Test all six offers, portal changes, failed payments, cancellation, duplicate events and expired sessions before live billing. Automated tests use a Stripe mock; they do not verify your account configuration.
 
 Page views reset each UTC calendar month even for annual subscriptions. Overages show an upgrade prompt, keep consent controls running, and incur no automatic charges. Agency includes five invited client seats plus the owner.
+
+## Connected Sandbox
+
+The PureConsent sandbox now has all six verified prices and a portal configuration. Local secrets and IDs are in ignored .env.local. Run node scripts/connect-sandbox.mjs to verify the prices and idempotently configure the Sandbox portal. Set STRIPE_PORTAL_CONFIGURATION_ID for the application to use that configuration.
+
+For local webhook delivery, run node scripts/listen-stripe.mjs alongside npm run dev. It stores the CLI signing secret locally without printing it. Production uses https://pureconsent.de/api/billing/webhook after deployment and a separate Dashboard endpoint secret. Checkout explicitly uses standard Stripe Billing, regardless of the account Managed Payments default.

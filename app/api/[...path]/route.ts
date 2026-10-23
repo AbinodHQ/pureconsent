@@ -5,7 +5,7 @@ import { resolveTxt } from 'node:dns/promises';
 import { z } from 'zod';
 import * as store from '@/lib/store';
 import { cookieName, hashToken, token, hashPassword, checkPassword, sameOrigin, appOrigin, sessionAge, authLimit } from '@/lib/auth';
-import { sendAction, sendInvitation } from '@/lib/email';
+import { sendAction, sendInvitation, assertEmailConfigured } from '@/lib/email';
 import { checkout, portal, syncBilling, webhook, requireClosedBilling } from '@/lib/billing';
 import { siteInput, consentInput, publicSite, originAllowed, csv } from '@/lib/domain';
 import { PLANS, effectivePlan } from '@/lib/plans';
@@ -59,8 +59,9 @@ async function handler(r:NextRequest,ctx:{params:Promise<{path:string[]}>}) {
       if(action==='signup') {
         const password=passwordSchema.parse(input.password), name=z.string().trim().min(2).max(80).parse(input.name), workspace=z.string().trim().min(2).max(80).parse(input.workspace);
         if(input.terms!==true) throw new store.UserError('Accept the terms to create your account.');
+        assertEmailConfigured();
         a=await store.createAccount({email,name,workspace,passwordHash:await hashPassword(password)});
-        return json({message:'Check your email to verify your account.',...await sendAction(a,'verify',r)},201);
+        try { return json({message:'Check your email to verify your account.',...await sendAction(a,'verify',r)},201); } catch(error) { if(error instanceof store.UserError && error.status===503) return json({message:'Your account was created, but the verification email could not be sent. Use Resend verification to request a new link.',emailDeliveryPending:true},201); throw error; }
       }
       if(action==='forgot' || action==='resend') return json({message:'If an eligible account exists, an email has been sent.',...(a && (action==='forgot'||!a.emailVerified)?await sendAction(a,action==='forgot'?'reset':'verify',r):{})});
       if(action==='login') {

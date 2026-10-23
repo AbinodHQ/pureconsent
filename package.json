@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.15"
+    "node": ">=22.18"
   },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3100",
@@ -36,5 +36,8 @@
     "terser": "^5.51.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@graphql-tools/utils": "13.1.1"
   }
 }

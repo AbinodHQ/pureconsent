@@ -4,7 +4,7 @@ Consent management SaaS built by Abinod, with Ambiten persistence, verified cust
 
 ## Local development
 
-Use Node.js 22.15 or newer. Run `npm ci`, copy `.env.example` to `.env.local`, then `npm run dev`. Open http://localhost:3100. Development email links appear in the interface. Local storage in `.data/saas-v2.json` is for single-process development only.
+Use Node.js 22.18 or newer. Run `npm ci`, copy `.env.example` to `.env.local`, then `npm run dev`. Open http://localhost:3100. Development email links appear in the interface. Local storage in `.data/saas-v2.json` is for single-process development only.
 
 ## Pricing
 
@@ -25,7 +25,7 @@ Set `PURECONSENT_STORAGE=ambiten`, `MONGODB_URI`, `MONGODB_DB`, the exact HTTPS 
 
 Ambiten 1.3.0 currently enables directConnection internally. Validate your MongoDB topology; a local MongoDB 8 endpoint is tested, while Atlas/SRV and multi-node failover require validation or a client update. Configure backups, key recovery, monitoring, access controls and retention for infrastructure logs. Verify actual app/database/backup/subprocessor locations before claiming German or EU-only hosting.
 
-[Stripe setup](docs/STRIPE.md) documents all six EUR prices, webhooks, portal and Sandbox checks. Stripe remains unconnected until you provide server configuration. Automated billing tests use mocks.
+[Stripe setup](docs/STRIPE.md) documents all six EUR prices, webhooks, portal and Sandbox checks. Stripe Sandbox is connected locally, including six prices and a customer portal. A real test checkout and signed webhook activated a paid plan. Production still requires deployment and live configuration.
 
 ## Security and integration boundaries
 
@@ -41,4 +41,6 @@ Run `npm test` and `npm run build`. For a disposable MongoDB instance, set `MONG
 
 Tests exercise pricing, six checkout offers, encryption/tampering/key rotation, client permissions/seat caps, tenant isolation, page-view deduplication, account lifecycle and widget behavior. Before launch, test real Stripe Sandbox and email delivery, production storage/key recovery, browser integration on customer sites, and finalize operator identity, tax treatment, privacy/terms, DPA and subprocessors.
 
-Dependency review: Next.js is updated to 16.4.2. npm audit still flags the GraphQL Tools utility chain bundled by Ambiten 1.3.0 (GHSA-7mx3-vvmw-hjmv). This app uses Ambiten's database API, not its GraphQL schema helpers. Obtain an upstream-compatible patched dependency release and reassess before public launch; do not interpret passing application tests as clearing that advisory.
+Dependency review: Next.js 16.4.2 and a targeted @graphql-tools/utils 13.1.1 override pass npm audit with zero reported vulnerabilities. The override is verified with GraphQL schema execution and Ambiten integration tests. Review compatibility when updating Ambiten.
+
+See [email delivery](docs/EMAIL.md) and [production deployment](docs/DEPLOYMENT.md).
