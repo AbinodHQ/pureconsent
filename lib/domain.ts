@@ -33,7 +33,7 @@ export const siteInput = z.object({
   fontFamily: z.string().trim().regex(/^[a-zA-Z0-9 ,'-]{1,100}$/).default('Arial, sans-serif'),
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#FFFFFF'),
   textColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#0B0F19'),
-  translations: z.record(z.enum(['en','de','fr']), z.object({analytics:z.string().trim().min(5).max(1500),marketing:z.string().trim().min(5).max(1500)})).default({}),
+  translations: z.partialRecord(z.enum(['en','de','fr']), z.object({analytics:z.string().trim().min(5).max(1500),marketing:z.string().trim().min(5).max(1500)})).default({}),
   accent: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
