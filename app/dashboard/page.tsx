@@ -14,7 +14,6 @@ import {
   FileCheck2,
   Globe2,
   LayoutDashboard,
-  Leaf,
   LogOut,
   Plus,
   Settings2,
@@ -337,7 +336,6 @@ export default function Dashboard () {
         </nav>
         <div className='sidebar-bottom'>
           <div className='care-card'>
-            <Leaf size={24} strokeWidth={1.4} />
             <strong>
               {t('A little less tracking.')}
               <br />
@@ -510,9 +508,6 @@ export default function Dashboard () {
               {tab === 'Overview' && (
                 <>
                   <div className='welcome-banner'>
-                    <div className='welcome-icon'>
-                      <Leaf size={32} strokeWidth={1.2} />
-                    </div>
                     <div>
                       <span className='eyebrow'>
                         {t('WELCOME TO PURECONSENT')}
@@ -539,7 +534,6 @@ export default function Dashboard () {
                         : t('Set up your website')}
                       <ArrowRight size={16} />
                     </button>
-                    <div className='banner-leaf'>◒</div>
                   </div>
                   <div className='stats'>
                     <Stat

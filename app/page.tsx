@@ -10,7 +10,7 @@ import {
   Check,
   Code2,
   Fingerprint,
-  Leaf,
+  Gauge,
   ShieldCheck
 } from 'lucide-react'
 import { Brand } from '@/components/brand'
@@ -72,7 +72,6 @@ export default async function Home () {
         <div>{t(" Built with care. ")}<span>{t(" Powered by ")}<strong>Ambiten ↗</strong>
           </span>
         </div>
-        <Leaf size={22} strokeWidth={1.2} />
       </div>
       <section id='how' className='how'>
         <div className='section-intro'>
@@ -107,7 +106,7 @@ export default async function Home () {
           </article>
         </div>
       </section>
-      <section className="uvp-grid"><article><Code2/><h3>{t("Made for your stack.")}</h3><p>{t("Next.js, Webflow, and custom websites. One dependency-free widget, with an explicit route-change hook for single-page apps.")}</p></article><article><Leaf/><h3>{t("Keep your pages light.")}</h3><p>{t("Deferred loading, no runtime framework, and no third-party font requests. Designed to stay out of your page layout.")}</p></article><article><ShieldCheck/><h3>{t("Control your data location.")}</h3><p>{t("Deploy the app and Ambiten-backed database in Germany or another EU region. Your chosen hosting and service providers determine data residency.")}</p></article></section><Pricing/><section className="launch-note"><span className="eyebrow">{t("PRIVACY THAT FITS YOUR BUSINESS")}</span><h2>{t("A better first impression.")}<br/>{t("One website at a time.")}</h2><p>{t("Give visitors a clear choice. Keep your websites and consent records in one focused workspace.")}</p><Link href="/auth/signup" className="button dark">{t("Create your free workspace ")}<ArrowRight size={16}/></Link></section>
+      <section className="uvp-grid"><article><Code2/><h3>{t("Made for your stack.")}</h3><p>{t("Next.js, Webflow, and custom websites. One dependency-free widget, with an explicit route-change hook for single-page apps.")}</p></article><article><Gauge aria-hidden="true"/><h3>{t("Keep your pages light.")}</h3><p>{t("Deferred loading, no runtime framework, and no third-party font requests. Designed to stay out of your page layout.")}</p></article><article><ShieldCheck/><h3>{t("Control your data location.")}</h3><p>{t("Deploy the app and Ambiten-backed database in Germany or another EU region. Your chosen hosting and service providers determine data residency.")}</p></article></section><Pricing/><section className="launch-note"><span className="eyebrow">{t("PRIVACY THAT FITS YOUR BUSINESS")}</span><h2>{t("A better first impression.")}<br/>{t("One website at a time.")}</h2><p>{t("Give visitors a clear choice. Keep your websites and consent records in one focused workspace.")}</p><Link href="/auth/signup" className="button dark">{t("Create your free workspace ")}<ArrowRight size={16}/></Link></section>
     </main>
     <SiteFooter />
     </>
