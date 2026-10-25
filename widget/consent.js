@@ -14,7 +14,9 @@
     expanded = false,
     visible = true,
     busy = false
+  
   const activated = new Set()
+
   const t = {
     en: {
       title: 'Your privacy. Your choice.',
@@ -71,6 +73,7 @@
     }
   }
   t.fr = {title:'Votre vie privée. Votre choix.',body:'Nous utilisons un stockage nécessaire pour mémoriser votre choix. Les services facultatifs restent désactivés sans votre accord.',accept:'Tout accepter',reject:'Refuser les options',settings:'Choisir mes préférences',save:'Enregistrer',necessary:'Nécessaire',always:'Toujours actif',necessaryBody:'Mémorise vos préférences de confidentialité sur ce site.',analytics:'Statistiques',marketing:'Marketing',privacy:'Confidentialité',reopen:'Choix de confidentialité',withdraw:'Retirer le consentement',close:'Fermer',saved:'Votre choix est enregistré sur cet appareil.',failed:'Votre choix est appliqué, mais le reçu n’a pas pu être envoyé.',retry:'Réessayer',changed:'La notice a changé. Rechargez cette page.',memory:'Le stockage est indisponible. Votre choix ne vaut que pour cette page.',demo:'Aperçu interactif · aucun reçu envoyé',powered:'Consentement par PureConsent'};
+  
   let lastPage = '';
   function trackPageView() {
     if (preview || !config) return;
@@ -81,11 +84,14 @@
     const sendView = () => fetch(api+'/api/public/'+siteId+'/impression',{method:'POST',credentials:'omit',headers:{'Content-Type':'application/json'},body,keepalive:true}).then(r=>{if(!r.ok)throw new Error('Usage unavailable');});
     sendView().catch(()=>sendView().catch(()=>{}));
   }
+
   let language = 'en',
     words = t.en,
     status = '',
     storageAvailable = true
+  
   const uuid = () => crypto.randomUUID()
+
   function read () {
     try {
       return JSON.parse(localStorage.getItem(key))
@@ -94,6 +100,7 @@
       return null
     }
   }
+
   function persist () {
     if (preview) return
     try {
@@ -102,6 +109,7 @@
       storageAvailable = false
     }
   }
+
   function valid (value) {
     return (
       value &&
@@ -114,11 +122,13 @@
       typeof value.choices.marketing === 'boolean'
     )
   }
+
   function emit () {
     window.dispatchEvent(
       new CustomEvent('pureconsent:change', { detail: { ...choices } })
     )
   }
+
   function activate () {
     if (!document?.documentElement) return
     document
@@ -147,18 +157,21 @@
         node.after(script)
       })
   }
+
   function element (name, text, className) {
     const node = document.createElement(name)
     if (text) node.textContent = text
     if (className) node.className = className
     return node
   }
+
   function button (text, click, className) {
     const node = element('button', text, className)
     node.type = 'button'
     node.onclick = click
     return node
   }
+
   function toggle (category, description, fixed = false) {
     const label = element('label', '', 'category')
     const copy = element('span')
@@ -178,6 +191,7 @@
     if (fixed) input.title = words.always
     return label
   }
+
   function render (focus = false) {
     if (!root) return
     root.replaceChildren()
@@ -190,8 +204,8 @@
       .panel{position:fixed;z-index:2147483647;bottom:24px;left:24px;width:460px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;background:${config.background || '#FFFFFF'};color:${config.textColor || '#0B0F19'};border:1px solid #e2e8f0;border-top:4px solid ${config.accent};border-radius:12px;padding:24px;box-shadow:0 12px 60px #18322630}
       .eyebrow{font-size:14px;text-transform:uppercase;letter-spacing:1.8px;color:inherit;margin-bottom:12px}
       h2{font-size:24px;letter-spacing:-.6px;line-height:1.2;margin:0 0 12px}p{font-size:15px;color:inherit;margin:0 0 18px}
-      .actions{display:flex;gap:8px}.actions button{flex:1;background:#0B0F19;color:#fff;border-color:#0B0F19;font-size:14px}.actions button:hover{background:#1e293b}
-      .preferences{width:100%;margin-top:8px;font-size:14px}.footer{display:flex;justify-content:space-between;gap:12px;margin-top:17px;font-size:14px;color:inherit}.footer a{color:inherit}
+      .actions{display:flex;gap:12px}.actions button{flex:1;background:#0B0F19;color:#fff;border-color:#0B0F19;font-size:14px}.actions button:hover{background:#1e293b}
+      .preferences{width:100%;margin-top:12px;font-size:14px;background:#f8fafc;border-color:#64748b}.preferences:hover{background:#e2e8f0}.footer{display:flex;justify-content:space-between;gap:12px;margin-top:17px;font-size:14px;color:inherit}.footer a{color:inherit}
       .reopen{position:fixed;z-index:2147483646;bottom:18px;left:18px;box-shadow:0 3px 18px #18322620;font-size:14px}
       .category{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid #e2e8f0}.category span{flex:1}.category strong{font-size:15px}.category small{display:block;color:inherit;font-size:14px;margin-top:4px}.category input{width:20px;height:20px;accent-color:#0B0F19}
       .status{position:fixed;z-index:2147483647;bottom:70px;left:18px;max-width:calc(100vw - 36px);width:400px;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:14px;font-size:14px;box-shadow:0 4px 20px #18322615}.status button{padding:5px 9px;margin:6px 6px 0 0;font-size:14px}
@@ -215,10 +229,12 @@
       }
       return
     }
+
     const panel = element('section', '', 'panel')
     panel.setAttribute('role', 'dialog')
     panel.setAttribute('aria-labelledby', 'pc-title')
     panel.lang = language
+
     const title = element('h2', words.title)
     title.id = 'pc-title'
     title.tabIndex = -1
@@ -227,6 +243,7 @@
       title,
       element('p', words.body)
     )
+
     if (expanded) {
       panel.append(
         toggle('necessary', words.necessaryBody, true),
@@ -234,6 +251,7 @@
         toggle('marketing', config.marketing)
       )
     }
+
     const actions = element('div', '', 'actions')
     actions.append(
       button(words.reject, () => choose('reject', empty())),
@@ -255,10 +273,12 @@
         'preferences'
       )
     )
+
     if (record)
       panel.append(
         button(words.withdraw, () => choose('withdraw', empty()), 'preferences')
       )
+    
     if (record)
       panel.append(
         button(
@@ -272,6 +292,7 @@
           'preferences'
         )
       )
+    
     const footer = element('div', '', 'footer')
     const privacy = element('a', words.privacy)
     privacy.href = config.privacyUrl
@@ -291,6 +312,7 @@
     })
     if (focus) title.focus()
   }
+  
   async function send () {
     if (preview || !pending || busy) return
     busy = true
@@ -317,6 +339,7 @@
       render()
     }
   }
+
   async function choose (action, selected) {
     if (busy) return
     const before = record?.choices || empty()
@@ -359,6 +382,7 @@
       }
     }
   }
+
   function open () {
     previousFocus = document.activeElement
     choices = record ? { ...record.choices } : empty()
@@ -372,6 +396,7 @@
     getConsent: () => (record ? { ...record.choices } : empty()),
     withdraw: () => (config ? choose('withdraw', empty()) : undefined)
   }
+
   async function start () {
     if (preview) {
       const query = new URLSearchParams(location.search)
@@ -427,6 +452,7 @@
     })
     if (pending) await send()
   }
+  
   const begin = () =>
     start().catch(() => {
       // Fail closed: text/plain scripts remain inert even if the service is unavailable.

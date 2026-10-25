@@ -9,6 +9,7 @@ export function Pricing () {
   const t = useTranslation()
   const locale = useLocale()
   const [interval, setInterval] = useState<Interval>('month')
+  const maxSaving = Math.max(...Object.values(PLANS).filter(p => p.price > 0).map(p => Math.floor((1 - p.annual / (p.price * 12)) * 100)))
   return (
     <section id='pricing' className='pricing-section'>
       <div className='section-intro'>
@@ -40,7 +41,7 @@ export function Pricing () {
           className={interval === 'year' ? 'selected' : ''}
           onClick={() => setInterval('year')}
         >
-          {t('Yearly · save up to 31%')}
+          {t('Yearly')} · {t('save up to')} {maxSaving}%
         </button>
       </div>
       <div className='pricing-grid'>
@@ -56,7 +57,7 @@ export function Pricing () {
                 ? t('FOR GROWING WEBSITES')
                 : key === 'agency'
                 ? t('FOR YOUR CLIENTS')
-                : t('BUILT FOR TRUST')}
+                : key === 'business' ? t('FOR MULTILINGUAL TEAMS') : t('FOR YOUR FIRST WEBSITE')}
             </span>
             <h3>{t(String(p.name))}</h3>
             <p>{t(String(p.description))}</p>
@@ -75,6 +76,8 @@ export function Pricing () {
                   maximumFractionDigits: 2
                 })}
                 {t(' / month equivalent, billed yearly')}
+                <br />
+                {t('Save')} €{p.price * 12 - p.annual} ({Math.floor((1 - p.annual / (p.price * 12)) * 100)}%) {t('vs.')} €{p.price * 12} {t('for 12 monthly payments')}
               </small>
             )}
             <ul>

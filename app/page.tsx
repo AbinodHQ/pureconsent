@@ -38,10 +38,10 @@ export default async function Home () {
       <section className='hero'>
         <div className='hero-copy'>
           <div className='eyebrow'>
-            <span className='live-dot' />{t(" A MORE THOUGHTFUL WEB ")}</div>
+            <span className='live-dot' />{t(" Lightweight consent management for modern websites. ")}</div>
           <h1>{t(" Make room ")}<br />{t(" for ")}<em>{t("trust.")}</em>
           </h1>
-          <p>{t(" Privacy choices should feel simple. Give your visitors a clear voice, keep optional scripts in check, and make consent part of a better experience. ")}</p>
+          <p>{t(" Give visitors clear privacy choices, control optional scripts, and manage consent records without unnecessary complexity. ")}</p>
           <div className='hero-actions'>
             <Link href='/auth/signup' className='button dark'>{t(" Build your first banner ")}<ArrowRight size={17} />
             </Link>
