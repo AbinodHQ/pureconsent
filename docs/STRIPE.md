@@ -1,4 +1,4 @@
-# Connect Stripe later
+# Stripe billing
 
 No Stripe account changes are required to run the Free plan. Configure Sandbox first, then independently create live prices and replace all keys/IDs together.
 
@@ -16,8 +16,10 @@ Signed webhook events trigger a fresh canonical subscription lookup. Checkout re
 
 Page views reset each UTC calendar month even for annual subscriptions. Overages show an upgrade prompt, keep consent controls running, and incur no automatic charges. Agency includes five invited client seats plus the owner.
 
-## Connected Sandbox
+## Live configuration
 
-The PureConsent sandbox now has all six verified prices and a portal configuration. Local secrets and IDs are in ignored .env.local. Run node scripts/connect-sandbox.mjs to verify the prices and idempotently configure the Sandbox portal. Set STRIPE_PORTAL_CONFIGURATION_ID for the application to use that configuration.
+The live catalogue was provisioned on 2026-10-25 for PureConsent. Vercel Production uses a restricted live key, six live EUR prices, a live customer portal and a separate live webhook signing secret. Local development remains on Sandbox.
 
-For local webhook delivery, run node scripts/listen-stripe.mjs alongside npm run dev. It stores the CLI signing secret locally without printing it. Production uses https://pureconsent.de/api/billing/webhook after deployment and a separate Dashboard endpoint secret. Checkout explicitly uses standard Stripe Billing, regardless of the account Managed Payments default.
+Run `node scripts/connect-live.mjs --provision --env=.env.live.local` with an ignored environment file to reconcile the catalogue. The script verifies price amounts and recurrence, writes IDs into that file, and never creates payments. Keep the key and signing secret out of Git. Copy all nine STRIPE variables together to Vercel Production and deploy.
+
+The restricted key needs write access to Customers, Checkout Sessions, Prices, Products, Customer Portal and Webhook Endpoints, plus read access to Subscriptions. It does not need payout or transfer access. Provisioning does not prove a real payment or tax setup; those require a deliberate operator acceptance test.
