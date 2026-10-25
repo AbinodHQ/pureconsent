@@ -23,3 +23,6 @@ The live catalogue was provisioned on 2026-10-25 for PureConsent. Vercel Product
 Run `node scripts/connect-live.mjs --provision --env=.env.live.local` with an ignored environment file to reconcile the catalogue. The script verifies price amounts and recurrence, writes IDs into that file, and never creates payments. Keep the key and signing secret out of Git. Copy all nine STRIPE variables together to Vercel Production and deploy.
 
 The restricted key needs write access to Customers, Checkout Sessions, Prices, Products, Customer Portal and Webhook Endpoints, plus read access to Subscriptions. It does not need payout or transfer access. Provisioning does not prove a real payment or tax setup; those require a deliberate operator acceptance test.
+
+Live verification on 2026-10-25: all six configured offers created live Checkout sessions and were expired without payment. Production accepted the live webhook signature (200) and rejected an invalid signature (400). No existing production accounts had Stripe customer references at cutover. No actual charge was made.
+
