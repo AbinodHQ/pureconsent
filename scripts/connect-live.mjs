@@ -40,7 +40,7 @@ const configs=await api('billing_portal/configurations?limit=100')
 const existing=configs.data.find(c=>c.metadata?.pureconsent==='live-v1')
 const settings={name:'PureConsent Live','metadata[pureconsent]':'live-v1','business_profile[headline]':'Manage your PureConsent subscription','features[invoice_history][enabled]':'true','features[payment_method_update][enabled]':'true','features[customer_update][enabled]':'true','features[customer_update][allowed_updates][0]':'email','features[customer_update][allowed_updates][1]':'address','features[customer_update][allowed_updates][2]':'tax_id','features[subscription_cancel][enabled]':'true','features[subscription_cancel][mode]':'at_period_end','features[subscription_update][enabled]':'true','features[subscription_update][default_allowed_updates][0]':'price','features[subscription_update][proration_behavior]':'create_prorations'}
 catalogue.forEach((p,i)=>{settings[`features[subscription_update][products][${i}][product]`]=p.product;p.prices.forEach((price,j)=>settings[`features[subscription_update][products][${i}][prices][${j}]`]=price)})
-const portal=await api(`billing_portal/configurations${existing?`/${existing.id}`:''}`,settings,'pc-live-portal-v1')
+const portal=await api(`billing_portal/configurations${existing?`/${existing.id}`:''}`,settings,existing?undefined:'pc-live-portal-v1')
 await save('STRIPE_PORTAL_CONFIGURATION_ID',portal.id)
 const url='https://pureconsent.de/api/billing/webhook'
 const hooks=await api('webhook_endpoints?limit=100')
