@@ -64,6 +64,15 @@
       <p>Thoughtful things, made for everyday living.</p>
       <div class="shape"></div>
     </main>
-    <script src="/consent.js" data-preview="true" defer></script>
+    <script>
+const previewLocale=new URLSearchParams(location.search).get('language') || (location.hostname==='com.pureconsent.de'?'en':'de');
+if(previewLocale==='de') {
+ document.documentElement.lang='de'; document.title='Interaktive PureConsent-Vorschau';
+ document.querySelector('nav span').textContent='Über uns · Kollektion';
+ document.querySelector('main small').textContent='EINE FIKTIVE WEBSITE';
+ document.querySelector('main h1').textContent='Der Natur ein Stück näher.';
+ document.querySelector('main p').textContent='Durchdachte Dinge für den Alltag.';
+}
+</script><script src="/consent.js" data-preview="true" defer></script>
   </body>
 </html>

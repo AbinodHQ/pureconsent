@@ -1,3 +1,4 @@
+import { localeForHost } from './i18n/shared'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { appOrigin } from './auth'
 import {
@@ -17,6 +18,8 @@ import {
   UserError,
   type Account
 } from './store'
+
+
 type Subscription = {
   id: string
   status: string
@@ -195,6 +198,7 @@ export async function checkout (
       await stripe(`checkout/sessions/${encodeURIComponent(s.id)}/expire`, {})
     return stripe<{ url: string }>('checkout/sessions', {
       mode: 'subscription',
+      locale: localeForHost(new URL(appOrigin(request)).host),
       // Use standard Stripe Billing regardless of the account's Managed Payments default.
       'managed_payments[enabled]': 'false',
       customer,
@@ -214,6 +218,7 @@ export async function portal (a: Account, request: Request) {
     throw new UserError('No billing account exists yet. Choose a plan first.')
   return stripe<{ url: string }>('billing_portal/sessions', {
     customer: a.stripeCustomerId,
+    locale: localeForHost(new URL(appOrigin(request)).host),
     ...(process.env.STRIPE_PORTAL_CONFIGURATION_ID ? { configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID } : {}),
     return_url: `${appOrigin(request)}/dashboard`
   })

@@ -1,13 +1,24 @@
-import { Leaf } from 'lucide-react'
 import Link from 'next/link'
-export function Brand ({ small = false, href = '/' }: { small?: boolean; href?: string }) {
+
+export function Brand ({
+  small = false,
+  href = '/'
+}: {
+  small?: boolean
+  href?: string
+}) {
   return (
-    <Link className={`brand ${small ? 'small' : ''}`} href={href}>
+    <Link
+      className={`brand ${small ? 'small' : ''}`}
+      href={href}
+      aria-label='PureConsent'
+    >
       <span className='brand-icon'>
-        <Leaf size={small ? 18 : 21} strokeWidth={1.7} />
+        <img src='/brand/emblem.png' width={34} height={38} alt='' />
       </span>
       <span>
-        PureConsent<span className='brand-dot'>.</span>
+        Pure<span style={{ color: '#5159FA' }}>Consent</span>
+        <span className='brand-dot'>.</span>
       </span>
     </Link>
   )

@@ -6,8 +6,17 @@ import {
 } from 'node:crypto'
 import { promisify } from 'node:util'
 import { consumeLimit } from './store'
+
 const scrypt = promisify(scryptCallback)
-export const cookieName = 'pc_session'
+export const cookieName = 'pc_session_v2'
+export const legacyCookieName = 'pc_session'
+export function sessionCookieDomain (request: Request) {
+  const host = new URL(request.url).hostname
+  return process.env.NODE_ENV === 'production' &&
+    ['pureconsent.de', 'com.pureconsent.de'].includes(host)
+    ? '.pureconsent.de'
+    : undefined
+}
 export const sessionAge = 7 * 86400
 export const token = () => randomBytes(32).toString('hex')
 export const hashToken = (value: string) =>
@@ -30,21 +39,45 @@ export function appOrigin (request?: Request) {
     const url = new URL(process.env.APP_ORIGIN)
     if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:')
       throw new Error('APP_ORIGIN must use HTTPS.')
+    if (
+      request &&
+      ['pureconsent.de', 'com.pureconsent.de'].includes(url.hostname)
+    ) {
+      const target = new URL(request.url)
+      if (
+        target.protocol === 'https:' &&
+        ['pureconsent.de', 'com.pureconsent.de'].includes(target.hostname)
+      )
+        return target.origin
+    }
     return url.origin
   }
   if (process.env.NODE_ENV === 'production')
     throw new Error('APP_ORIGIN is required.')
   return request ? new URL(request.url).origin : 'http://localhost:3100'
 }
-export function sameOrigin(request: Request) {
-  const origin=request.headers.get('origin')
-  if(!origin)return false
+export function sameOrigin (request: Request) {
+  const origin = request.headers.get('origin')
+  if (!origin) return false
   try {
-    const expected=new URL(appOrigin(request)),actual=new URL(origin),target=new URL(request.url)
-    if(actual.origin===expected.origin)return true
-    const loopback=(host:string)=>['localhost','127.0.0.1','[::1]'].includes(host)
-    return process.env.NODE_ENV!=='production' && loopback(actual.hostname) && loopback(expected.hostname) && loopback(target.hostname) && actual.protocol===expected.protocol && actual.port===expected.port && actual.port===target.port
-  } catch {return false}
+    const expected = new URL(appOrigin(request)),
+      actual = new URL(origin),
+      target = new URL(request.url)
+    if (actual.origin === expected.origin) return true
+    const loopback = (host: string) =>
+      ['localhost', '127.0.0.1', '[::1]'].includes(host)
+    return (
+      process.env.NODE_ENV !== 'production' &&
+      loopback(actual.hostname) &&
+      loopback(expected.hostname) &&
+      loopback(target.hostname) &&
+      actual.protocol === expected.protocol &&
+      actual.port === expected.port &&
+      actual.port === target.port
+    )
+  } catch {
+    return false
+  }
 }
 export async function authLimit (action: string, email: string) {
   return (
