@@ -27,6 +27,27 @@ export async function generateMetadata(): Promise<Metadata> {
         'x-default': localeOrigins.de + path
       }
     },
+    openGraph: {
+      type: 'website',
+      siteName: 'PureConsent',
+      url: localeOrigins[locale] + path,
+      locale: locale === 'de' ? 'de_DE' : 'en_US',
+      alternateLocale: locale === 'de' ? 'en_US' : 'de_DE',
+      images: [{
+        url: localeOrigins[locale] + '/brand/pureconsent-social.png',
+        width: 1731,
+        height: 909,
+        type: 'image/png',
+        alt: 'PureConsent — Clear choices. Lighter websites.'
+      }]
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: [{
+        url: localeOrigins[locale] + '/brand/pureconsent-social.png',
+        alt: 'PureConsent — Clear choices. Lighter websites.'
+      }]
+    },
     icons: {
       icon: [
         { url: '/brand/favicon-32.png', sizes: '32x32', type: 'image/png' },
