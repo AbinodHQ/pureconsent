@@ -26,6 +26,12 @@ export default async function Docs () {
             ' PureConsent controls scripts you explicitly mark as optional. Complete these steps on each website before inviting real visitors. '
           )}
         </p>
+        <section id='integrations'>
+          <h2>{t('Integrations and case studies')}</h2>
+          <p>{t('See how explicit script gating works on a production website, including verification evidence and limitations.')}</p>
+          <p><Link href='/docs/integrations/case-studies/abinod-consent-gated-reviews'>{t('Consent-Gated Customer Reviews on Abinod.de')} ↗</Link></p>
+          <p><Link href='/docs/integrations/case-studies'>{t('All integration case studies')}</Link></p>
+        </section>
         <h2 id='setup'>{t('01 · Create your workspace')}</h2>
         <p>
           {t(

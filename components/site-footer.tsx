@@ -18,6 +18,7 @@ const groups = [
     title: 'Build with PureConsent',
     links: [
       ['Getting started', '/docs#setup'],
+      ['Integration case studies', '/docs/integrations/case-studies'],
       ['Install the widget', '/docs#installation'],
       ['Next.js & Webflow', '/docs#frameworks'],
       ['Agency client seats', '/docs#agency']
