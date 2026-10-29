@@ -50,9 +50,18 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: [
-        { url: '/brand/icons/favicon-w-32x32.png', sizes: '32x32', type: 'image/png' },
-        { url: '/brand/icons/favicon-w-16x16.png', sizes: '16x16', type: 'image/png' }
-      ]
+        { url: '/brand/icons/pc-favi-w-64x64.png', sizes: '64x64', type: 'image/png' },
+        ...(['light', 'dark'] as const).flatMap(theme =>
+          [16, 32, 64].map(size => ({
+            url: `/brand/icons/${size === 64 ? 'pc-favi' : 'favicon'}-${theme === 'dark' ? 'w' : 'b'}-${size}x${size}.png`,
+            sizes: `${size}x${size}`,
+            type: 'image/png',
+            media: `(prefers-color-scheme: ${theme})`
+          }))
+        )
+      ],
+      shortcut: '/brand/icons/pc-favi-w-64x64.png',
+      apple: [{ url: '/brand/icons/pc-favi-w-192x192.png', sizes: '192x192', type: 'image/png' }]
     },
     robots:
       path.startsWith('/dashboard') || path.startsWith('/auth')
