@@ -50,8 +50,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: [
-        { url: '/brand/favicon-32.png', sizes: '32x32', type: 'image/png' },
-        { url: '/brand/favicon-16.png', sizes: '16x16', type: 'image/png' }
+        { url: '/brand/icons/favicon-w-32x32.png', sizes: '32x32', type: 'image/png' },
+        { url: '/brand/icons/favicon-w-16x16.png', sizes: '16x16', type: 'image/png' }
       ]
     },
     robots:
