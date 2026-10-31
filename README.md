@@ -44,3 +44,9 @@ Tests exercise pricing, six checkout offers, encryption/tampering/key rotation, 
 Dependency review: Next.js 16.4.2 and a targeted @graphql-tools/utils 13.1.1 override pass npm audit with zero reported vulnerabilities. The override is verified with GraphQL schema execution and Ambiten integration tests. Review compatibility when updating Ambiten.
 
 See [email delivery](docs/EMAIL.md) and [production deployment](docs/DEPLOYMENT.md).
+
+## Legal pages and website languages
+
+`/impressum` contains the operator identity, postal address, contact information and VAT ID. `/privacy` describes accounts, consent storage, retention, service providers, hosting and visitor rights. Both routes are available in German on `pureconsent.de` and English on `com.pureconsent.de`, with localized metadata and route-preserving language switching. The privacy notice retains its supplied revision date of October 30, 2026.
+
+English source copy is translated through `lib/i18n/de.json`; update both whenever legal copy changes. Provider names, addresses and VAT identifiers remain identical across languages. See [language maintenance](docs/LANGUAGES.md) and [legal content maintenance](docs/LEGAL.md). Translation coverage does not verify legal sufficiency or production-provider settings.

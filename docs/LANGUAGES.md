@@ -9,3 +9,7 @@ Both hosts are allowlisted for application-origin handling and payment/email ret
 The English hostname is connected to Vercel Production with a CNAME named com pointing to d5501decbd3a34ec.vercel-dns-017.com. Both production domains must retain valid TLS certificates. APP_ORIGIN stays https://pureconsent.de as the canonical fallback; Stripe webhooks continue to use the existing apex endpoint.
 
 The provided pureconsent-assets shield-and-leaf emblem and favicon are published under public/brand. Wordmark variants are retained there for light/dark branded materials. Brand links use the emblem with accessible text, preserving the dashboard-specific destination.
+
+## Legal content
+
+The `/impressum` and `/privacy` routes use English source strings and the German dictionary, including navigation labels, headings, body text and localized metadata. Canonical and alternate-language URLs follow the selected host. Keep English source strings in `t(...)`, normalize dictionary keys by whitespace, and preserve the original spaces around inline links. Run `npx tsx --test tests/legal-languages.test.ts` to detect missing dictionary entries and regressions in contact links.

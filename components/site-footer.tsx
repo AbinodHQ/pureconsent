@@ -36,6 +36,7 @@ const groups = [
   {
     title: 'Trust & privacy',
     links: [
+      ['Impressum', '/impressum'],
       ['Privacy & storage', '/privacy'],
       ['Terms of service', '/terms'],
       ['Script controls', '/docs#script-controls'],
@@ -105,6 +106,7 @@ export async function SiteFooter () {
             {t(' PureConsent. A product by Abinod.')}
           </p>
           <div>
+            <Link href='/impressum'>{t('Impressum')}</Link>
             <Link href='/privacy'>{t('Privacy')}</Link>
             <Link href='/terms'>{t('Terms')}</Link>
             <a href='#top'>

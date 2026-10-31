@@ -18,3 +18,5 @@ Mobile statistics become full-width rows instead of compressed three-column card
 Theme overrides are in `app/secure-shield.css`; structural responsive layout is in `app/globals.css`. Widget styling is isolated within `public/consent.js`.
 
 Operational indicators describe the observed state, such as configuration or connection. They do not imply a legal compliance certification.
+
+Legal pages use the shared `document-page` layout, Brand, LanguageSwitcher and contextual navigation links. Keep long German paragraphs and addresses readable on mobile; use semantic headings and an address element for provider identity. Page titles and descriptions must follow the selected website language.
