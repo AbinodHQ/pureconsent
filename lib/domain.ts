@@ -56,6 +56,8 @@ export const siteInput = z.object({
       'Show relevant advertising. List your advertising providers in your privacy notice.'
     )
 })
+
+
 export type SiteInput = z.infer<typeof siteInput>
 export type Site = SiteInput & {
   slot: number
@@ -68,6 +70,7 @@ export type Site = SiteInput & {
   createdAt: string
   updatedAt: string
 }
+
 export const consentInput = z
   .object({
     id: z.string().uuid(),
@@ -97,6 +100,7 @@ export const consentInput = z
       })
     }
   })
+  
 export type Receipt = z.infer<typeof consentInput> & {
   siteId: string
   ownerId: string
@@ -110,13 +114,16 @@ export type Receipt = z.infer<typeof consentInput> & {
     version: number
   }
 }
+
 export function publicSite (site: Site) {
   const { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version, hideBranding, fontFamily, background, textColor, translations } = site
   return { id, name, origin, privacyUrl, language, accent, retentionDays, analytics, marketing, version, hideBranding, fontFamily, background, textColor, translations }
 }
+
 export function originAllowed (site: Site, origin: string | null) {
   return origin !== null && origin === site.origin
 }
+
 export function csv (rows: Receipt[]) {
   const cell = (value: unknown) => `"${String(value).replace(/"/g, '""')}"`
   const fields = [

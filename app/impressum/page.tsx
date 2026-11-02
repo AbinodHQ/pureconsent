@@ -11,16 +11,16 @@ const VAT_ID = 'DE368457970'
 
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslator()
-  const locale = await getLocale()
-  const url = localeOrigins[locale] + '/impressum'
-  return {
-    title: t('Impressum') + ' | PureConsent',
-    description: t('Legal provider information and contact details for PureConsent, a product operated by Abinod.'),
-    alternates: { canonical: url, languages: { de: localeOrigins.de + '/impressum', en: localeOrigins.en + '/impressum' } },
-    openGraph: { title: t('Impressum') + ' | PureConsent', description: t('Legal provider information and contact details for PureConsent, a product operated by Abinod.'), url, locale: locale === 'de' ? 'de_DE' : 'en_US' },
-    twitter: { title: t('Impressum') + ' | PureConsent', description: t('Legal provider information and contact details for PureConsent, a product operated by Abinod.') }
-  }
+	const t = await getTranslator()
+	const locale = await getLocale()
+	const url = localeOrigins[locale] + '/impressum'
+	return {
+		title: t('Impressum') + ' | PureConsent',
+		description: t('Legal provider information and contact details for PureConsent, a product operated by Abinod.'),
+		alternates: { canonical: url, languages: { de: localeOrigins.de + '/impressum', en: localeOrigins.en + '/impressum' } },
+		openGraph: { title: t('Impressum') + ' | PureConsent', description: t('Legal provider information and contact details for PureConsent, a product operated by Abinod.'), url, locale: locale === 'de' ? 'de_DE' : 'en_US' },
+		twitter: { title: t('Impressum') + ' | PureConsent', description: t('Legal provider information and contact details for PureConsent, a product operated by Abinod.') }
+	}
 }
 
 export default async function Impressum() {
@@ -72,15 +72,16 @@ export default async function Impressum() {
 				</address>
 
 				<h2>{t('Contact')}</h2>
-
 				<p>
+					{t('Telefon')}:{' '}
+					<a href="tel:+4920992411779">
+						+49 209 92411779
+					</a><br />
 					{t('Email')}:{' '}
 					<a href='mailto:contact@abinod.com'>
 						contact@abinod.com
 					</a>
-
 					<br />
-
 					{t('Online contact')}:{' '}
 					<a href='https://www.abinod.com/contact/'>
 						{t('Contact Abinod')}

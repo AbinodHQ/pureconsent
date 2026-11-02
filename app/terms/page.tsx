@@ -53,7 +53,7 @@ export default async function Terms () {
         <h2>{t('Questions and requests')}</h2>
         <p>
           {t('Contact the service operator at ')}
-          <a href='mailto:abinod@online.de'>abinod@online.de</a>
+          <a href='mailto:emma.nodolomwanyi@gmail.com'>info@pureconsent.de</a>
           {t(
             ' for billing, account deletion, or data requests. Applicable mandatory consumer and data protection rights remain unaffected.'
           )}
